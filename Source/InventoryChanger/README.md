@@ -2,6 +2,7 @@
 
 ## What's new
 
+* **4 August 2022** - IEM Katowice 2019 souvenirs now receive teams / MVP gold stickers
 * **1 August 2022** - Storage Units can be used to store items from the Inventory Changer
 * **14 June 2022** - X-Ray Scanner can be used to open weapons cases from the Inventory Changer
 * **11 June 2022** - Added "Add all in list" button to GUI which adds all items satisfying filter condition to the inventory.
@@ -26,7 +27,7 @@ Example: searching for "glock-18" and pressing "Add all in list" will add all we
   * can be opened
   * have real teams and MVP player from a random match
   * unboxed skins get gold stickers and teams / MVP in their description
-    * excluding **IEM Katowice 2019** and **StarLadder Berlin 2019** tournaments, which are yet to be implemented
+    * excluding **StarLadder Berlin 2019** tournament, which is yet to be implemented
 * Music kits
   * in main menu and in game
   * StatTrak counts round MVPs
