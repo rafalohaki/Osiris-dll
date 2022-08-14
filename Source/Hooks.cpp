@@ -80,8 +80,8 @@ static LRESULT __stdcall wndProc(HWND window, UINT msg, WPARAM wParam, LPARAM lP
 
         ImGui::CreateContext();
         ImGui_ImplWin32_Init(window);
-        config = std::make_unique<Config>();
-        gui = std::make_unique<GUI>();
+        config.emplace(Config{});
+        gui.emplace(GUI{});
 
         hooks->install();
 
@@ -730,9 +730,9 @@ static int pollEvent(SDL_Event* event) noexcept
         EventListener::init();
 
         ImGui::CreateContext();
-        config = std::make_unique<Config>();
+        config.emplace(Config{});
 
-        gui = std::make_unique<GUI>();
+        gui.emplace(GUI{});
 
         hooks->install();
 

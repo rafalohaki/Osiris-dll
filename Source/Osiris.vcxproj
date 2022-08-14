@@ -242,8 +242,12 @@
     <ClInclude Include="InventoryChanger\Inventory\Item.h" />
     <ClInclude Include="InventoryChanger\Inventory\Structs.h" />
     <ClInclude Include="InventoryChanger\Inventory\StructsFromJson.h" />
+    <ClInclude Include="InventoryChanger\ItemGenerator\AttributeGenerator.h" />
+    <ClInclude Include="InventoryChanger\ItemGenerator\DefaultGenerator.h" />
+    <ClInclude Include="InventoryChanger\ItemGenerator\DropGenerator.h" />
     <ClInclude Include="InventoryChanger\ItemGenerator\ItemGenerator.h" />
     <ClInclude Include="InventoryChanger\ItemGenerator\TournamentMatches.h" />
+    <ClInclude Include="InventoryChanger\ItemGenerator\Utils.h" />
     <ClInclude Include="InventoryChanger\WeaponNames.h" />
     <ClInclude Include="JsonForward.h" />
     <ClInclude Include="Netvars.h" />
@@ -257,6 +261,9 @@
     <ClInclude Include="SDK\ClientMode.h" />
     <ClInclude Include="SDK\Constants\ClassId.h" />
     <ClInclude Include="SDK\Constants\FrameStage.h" />
+    <ClInclude Include="SDK\Constants\ProPlayer.h" />
+    <ClInclude Include="SDK\Constants\Tournament.h" />
+    <ClInclude Include="SDK\Constants\TournamentTeam.h" />
     <ClInclude Include="SDK\Constants\UserMessages.h" />
     <ClInclude Include="SDK\ConVar.h" />
     <ClInclude Include="SDK\EconItemView.h" />
