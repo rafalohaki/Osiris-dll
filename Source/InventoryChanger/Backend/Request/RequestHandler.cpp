@@ -20,6 +20,11 @@ void RequestHandler::operator()(const request::ApplySticker& request) const
     skin->stickers[request.slot].wear = 0.0f;
 
     inventoryHandler.moveItemToFront(request.item);
+
+    if (request.item->gameItem().getRarity() > EconRarity::Default) {
+        copyTradability(request.sticker, request.item);
+    }
+
     itemRemovalHandler(request.sticker);
     responseAccumulator(response::StickerApplied{ request.item, request.slot });
 }
@@ -71,6 +76,7 @@ void RequestHandler::operator()(const request::ApplyPatch& request) const
 
     agent->patches[request.slot].patchID = gameItemLookup.getStorage().getPatch(request.patch->gameItem()).id;
     inventoryHandler.moveItemToFront(request.item);
+    copyTradability(request.patch, request.item);
     itemRemovalHandler(request.patch);
     responseAccumulator(response::PatchApplied{ request.item, request.slot });
 }
@@ -139,6 +145,17 @@ void RequestHandler::operator()(const request::UnsealGraffiti& request) const
 
     inventoryHandler.moveItemToFront(request.item);
     responseAccumulator(response::GraffitiUnsealed{ request.item });
+}
+
+void RequestHandler::copyTradability(ItemIterator source, ItemIterator destination) const
+{
+    const auto sourceTradableAfter = source->getProperties().common.tradableAfterDate;
+    auto& destinationTradableAfter = constRemover(destination).getProperties().common.tradableAfterDate;
+
+    if (destinationTradableAfter > sourceTradableAfter) {
+        destinationTradableAfter = sourceTradableAfter;
+        responseAccumulator(response::TradabilityUpdated{ destination });
+    }
 }
 
 }
