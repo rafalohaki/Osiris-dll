@@ -11,14 +11,15 @@ namespace inventory_changer::backend
 template <typename ResponseAccumulator>
 class XRayScannerHandler {
 public:
-    XRayScannerHandler(const game_items::Lookup& gameItemLookup, const game_items::CrateLootLookup& crateLootLookup, XRayScanner& xRayScanner, InventoryHandler<ResponseAccumulator> inventoryHandler, ItemRemovalHandler<ResponseAccumulator> itemRemovalHandler, ResponseAccumulator responseAccumulator, ItemConstRemover constRemover)
+    XRayScannerHandler(const game_items::Lookup& gameItemLookup, const game_items::CrateLootLookup& crateLootLookup, XRayScanner& xRayScanner, InventoryHandler inventoryHandler, ItemRemovalHandler<ResponseAccumulator> itemRemovalHandler, ResponseAccumulator responseAccumulator, ItemConstRemover constRemover)
         : gameItemLookup{ gameItemLookup }, crateLootLookup{ crateLootLookup }, xRayScanner{ xRayScanner }, inventoryHandler{ inventoryHandler }, itemRemovalHandler{ itemRemovalHandler }, responseAccumulator{responseAccumulator}, constRemover{constRemover} {}
 
     void performXRayScan(ItemIterator crate) const
     {
         assert(crate->gameItem().isCrate());
 
-        auto generatedItem = item_generator::generateItemFromContainer(gameItemLookup, crateLootLookup, *crate, nullptr);
+        Helpers::RandomGenerator randomGenerator;
+        auto generatedItem = item_generator::generateItemFromContainer(*memory, randomGenerator, gameItemLookup, crateLootLookup, *crate, nullptr);
         if (!generatedItem.has_value())
             return;
 
@@ -71,7 +72,7 @@ private:
     const game_items::Lookup& gameItemLookup;
     const game_items::CrateLootLookup& crateLootLookup;
     XRayScanner& xRayScanner;
-    InventoryHandler<ResponseAccumulator> inventoryHandler;
+    InventoryHandler inventoryHandler;
     ItemRemovalHandler<ResponseAccumulator> itemRemovalHandler;
     ResponseAccumulator responseAccumulator;
     ItemConstRemover constRemover;

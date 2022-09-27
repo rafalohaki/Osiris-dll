@@ -13,6 +13,8 @@
 
 #include "../Memory.h"
 
+#include "Constants/ItemId.h"
+
 enum class WeaponId : short;
 
 enum class EconRarity : std::uint8_t {
@@ -287,18 +289,10 @@ public:
     VIRTUAL_METHOD(ItemSchema*, getItemSchema, 0, (), (this))
 };
 
-enum TournamentStage : std::uint8_t {
-    GroupStage = 2,
-    Quarterfinal = 5,
-    Semifinal = 8,
-    GrandFinal = 11,
-    AllStar = 14,
-    ChallengersStage = 27
-};
-
 class EconItemAttributeSetter {
 public:
-    explicit EconItemAttributeSetter(ItemSchema& itemSchema) : itemSchema{ itemSchema } {}
+    explicit EconItemAttributeSetter(ItemSchema& itemSchema, const Memory& memory)
+        : itemSchema{ itemSchema }, memory{ memory } {}
 
     void setPaintKit(EconItem& econItem, float paintKit) noexcept { setAttributeValue(econItem, 6, &paintKit); }
     void setSeed(EconItem& econItem, float seed) noexcept { setAttributeValue(econItem, 7, &seed); }
@@ -340,16 +334,17 @@ private:
     void setAttributeValue(EconItem& econItem, int index, void* value) noexcept
     {
         if (const auto attribute = itemSchema.getAttributeDefinitionInterface(index))
-            memory->setDynamicAttributeValue(&econItem, attribute, value);
+            memory.setDynamicAttributeValue(&econItem, attribute, value);
     }
 
     void removeAttribute(EconItem& econItem, int index) noexcept
     {
         if (const auto attribute = itemSchema.getAttributeDefinitionInterface(index))
-            memory->removeDynamicAttribute(&econItem, attribute);
+            memory.removeDynamicAttribute(&econItem, attribute);
     }
 
     ItemSchema& itemSchema;
+    const Memory& memory;
 };
 
 class EconItem {
@@ -364,8 +359,8 @@ public:
 
     PAD(2 * sizeof(std::uintptr_t))
 
-    std::uint64_t itemID;
-    std::uint64_t originalID;
+    csgo::ItemId itemID;
+    csgo::ItemId originalID;
     void* customDataOptimizedObject;
     std::uint32_t accountID;
     std::uint32_t inventory;
@@ -413,9 +408,9 @@ public:
     PAD(16)
     UtlVector<SharedObjectTypeCache<T>*> sharedObjectTypeCaches;
 
-    SharedObjectTypeCache<T>* findBaseTypeCache(int classID) noexcept
+    SharedObjectTypeCache<T>* findBaseTypeCache(const Memory& memory, int classID) noexcept
     {
-        return memory->createBaseTypeCache(this, classID);
+        return memory.createBaseTypeCache(this, classID);
     }
 };
 
@@ -435,33 +430,33 @@ public:
     VIRTUAL_METHOD(void, soUpdated, 1, (SOID owner, SharedObject* object, int event), (this, owner, object, event))
     VIRTUAL_METHOD(void, soDestroyed, 2, (SOID owner, SharedObject* object, int event), (this, owner, object, event))
     VIRTUAL_METHOD_V(EconItemView*, getItemInLoadout, 8, (csgo::Team team, int slot), (this, team, slot))
-    VIRTUAL_METHOD_V(void, removeItem, 15, (std::uint64_t itemID), (this, itemID))
+    VIRTUAL_METHOD_V(void, removeItem, 15, (csgo::ItemId itemID), (this, itemID))
 
     auto getSOC() noexcept
     {
         return *reinterpret_cast<ClientSharedObjectCache<EconItem>**>(std::uintptr_t(this) + WIN32_LINUX(0xB4, 0xF8));
     }
 
-    SharedObjectTypeCache<EconItem>* getItemBaseTypeCache() noexcept
+    SharedObjectTypeCache<EconItem>* getItemBaseTypeCache(const Memory& memory) noexcept
     {
         const auto soc = getSOC();
         if (!soc)
             return nullptr;
 
-        return soc->findBaseTypeCache(1);
+        return soc->findBaseTypeCache(memory, 1);
     }
 
-    std::pair<std::uint64_t, std::uint32_t> getHighestIDs() noexcept
+    std::pair<csgo::ItemId, std::uint32_t> getHighestIDs(const Memory& memory) noexcept
     {
         const auto soc = getSOC();
         if (!soc)
             return {};
 
-        const auto baseTypeCache = soc->findBaseTypeCache(1);
+        const auto baseTypeCache = soc->findBaseTypeCache(memory, 1);
         if (!baseTypeCache)
             return {};
 
-        std::uint64_t maxItemID = 0;
+        csgo::ItemId maxItemID = 0;
         std::uint32_t maxInventoryID = 0;
         for (int i = 0; i < baseTypeCache->objectCount; ++i) {
             const auto item = baseTypeCache->objects[i];
@@ -489,7 +484,7 @@ class InventoryManager {
 public:
     INCONSTRUCTIBLE(InventoryManager)
 
-    VIRTUAL_METHOD_V(bool, equipItemInSlot, 20, (csgo::Team team, int slot, std::uint64_t itemID, bool swap = false), (this, team, slot, itemID, swap))
+    VIRTUAL_METHOD_V(bool, equipItemInSlot, 20, (csgo::Team team, int slot, csgo::ItemId itemID, bool swap = false), (this, team, slot, itemID, swap))
     VIRTUAL_METHOD_V(CSPlayerInventory*, getLocalInventory, 23, (), (this))
-    VIRTUAL_METHOD_V(void, updateInventoryEquippedState, 29, (CSPlayerInventory* inventory, std::uint64_t itemID, csgo::Team team, int slot, bool swap), (this, inventory, itemID, team, slot, swap))
+    VIRTUAL_METHOD_V(void, updateInventoryEquippedState, 29, (CSPlayerInventory* inventory, csgo::ItemId itemID, csgo::Team team, int slot, bool swap), (this, inventory, itemID, team, slot, swap))
 };

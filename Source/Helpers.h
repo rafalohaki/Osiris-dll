@@ -15,14 +15,16 @@
 
 #include "SDK/WeaponId.h"
 
+#include "Memory.h"
+
 struct Color3;
 struct Color4;
 struct Vector;
 
 namespace Helpers
 {
-    unsigned int calculateColor(Color4 color) noexcept;
-    unsigned int calculateColor(Color3 color) noexcept;
+    unsigned int calculateColor(const Memory& memory, Color4 color) noexcept;
+    unsigned int calculateColor(const Memory& memory, Color3 color) noexcept;
     unsigned int calculateColor(int r, int g, int b, int a) noexcept;
     void setAlphaFactor(float newAlphaFactor) noexcept;
     float getAlphaFactor() noexcept;
@@ -61,18 +63,6 @@ namespace Helpers
         return (id >= WeaponId::Bayonet && id <= WeaponId::SkeletonKnife) || id == WeaponId::KnifeT || id == WeaponId::Knife;
     }
 
-    constexpr auto isSouvenirToken(WeaponId id) noexcept
-    {
-        switch (id) {
-        case WeaponId::Berlin2019SouvenirToken:
-        case WeaponId::Stockholm2021SouvenirToken:
-        case WeaponId::Antwerp2022SouvenirToken:
-            return true;
-        default:
-            return false;
-        }
-    }
-
     constexpr auto bronzeEventCoinFromViewerPass(WeaponId id) noexcept
     {
         switch (id) {
@@ -84,16 +74,6 @@ namespace Helpers
         case WeaponId::Antwerp2022ViewerPass:
         case WeaponId::Antwerp2022ViewerPassWith3Tokens: return WeaponId::Antwerp2022BronzeCoin;
         default: return WeaponId::None;
-        }
-    }
-
-    constexpr std::uint8_t numberOfTokensWithViewerPass(WeaponId id) noexcept
-    {
-        switch (id) {
-        case WeaponId::Berlin2019ViewerPassWith3Tokens: 
-        case WeaponId::Stockholm2021ViewerPassWith3Tokens:
-        case WeaponId::Antwerp2022ViewerPassWith3Tokens: return 3;
-        default: return 0;
         }
     }
 
@@ -110,14 +90,14 @@ namespace Helpers
         using GeneratorType = std::mt19937;
         using result_type = GeneratorType::result_type;
 
-        static constexpr auto min()
+        static constexpr auto (min)()
         {
-            return GeneratorType::min();
+            return (GeneratorType::min)();
         }
 
-        static constexpr auto max()
+        static constexpr auto (max)()
         {
-            return GeneratorType::max();
+            return (GeneratorType::max)();
         }
 
         auto operator()() const
@@ -133,36 +113,10 @@ namespace Helpers
             return distribution(gen);
         }
 
-        template <std::integral T>
-        [[nodiscard]] static T random(T min, T max) noexcept
-        {
-            std::scoped_lock lock{ mutex };
-            return std::uniform_int_distribution{ min, max }(gen);
-        }
-
-        template <std::floating_point T>
-        [[nodiscard]] static T random(T min, T max) noexcept
-        {
-            std::scoped_lock lock{ mutex };
-            return std::uniform_real_distribution{ min, max }(gen);
-        }
-
-        template <typename T>
-        [[nodiscard]] static std::enable_if_t<std::is_enum_v<T>, T> random(T min, T max) noexcept
-        {
-            return static_cast<T>(random(static_cast<std::underlying_type_t<T>>(min), static_cast<std::underlying_type_t<T>>(max)));
-        }
-
     private:
         inline static GeneratorType gen{ std::random_device{}() };
         inline static std::mutex mutex;
     };
-
-    template <typename T>
-    [[nodiscard]] T random(T min, T max) noexcept
-    {
-        return RandomGenerator::random(min, max);
-    }
 
     class ToUpperConverter {
     public:

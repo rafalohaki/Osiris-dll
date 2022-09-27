@@ -35,7 +35,7 @@ constexpr auto CONFIG_VERSION = 4;
     auto& stickers = j["Stickers"];
     for (std::size_t i = 0; i < skin.stickers.size(); ++i) {
         const auto& sticker = skin.stickers[i];
-        if (sticker.stickerID == 0)
+        if (sticker.stickerID == csgo::StickerId::Default)
             continue;
 
         json stickerConfig;
@@ -46,7 +46,7 @@ constexpr auto CONFIG_VERSION = 4;
         stickers.push_back(std::move(stickerConfig));
     }
 
-    if (skin.tournamentStage != TournamentStage{}) {
+    if (skin.tournamentStage != csgo::TournamentStage{}) {
         j["Tournament Stage"] = skin.tournamentStage;
         j["Tournament Team 1"] = skin.tournamentTeam1;
         j["Tournament Team 2"] = skin.tournamentTeam2;
@@ -76,7 +76,7 @@ namespace inventory_changer
 [[nodiscard]] const game_items::Item* gameItemFromJson(const game_items::Lookup& lookup, const json& j)
 {
     if (const auto stickerID = j.find("Sticker ID"); stickerID != j.end() && stickerID->is_number_integer())
-        return lookup.findSticker(stickerID->get<int>());
+        return lookup.findSticker(stickerID->get<csgo::StickerId>());
     if (const auto musicID = j.find("Music ID"); musicID != j.end() && musicID->is_number_integer())
         return lookup.findMusic(musicID->get<int>());
     if (const auto patchID = j.find("Patch ID"); patchID != j.end() && patchID->is_number_integer())
@@ -266,7 +266,7 @@ void commonPropertiesToJson(const inventory::Item::CommonProperties& properties,
         j.emplace("Tradable After Date", properties.tradableAfterDate);
 }
 
-[[nodiscard]] json itemsToJson(const backend::BackendSimulator& backend)
+[[nodiscard]] json itemsToJson(const Interfaces& interfaces, const Memory& memory, const backend::BackendSimulator& backend)
 {
     const auto& gameItemStorage = backend.getGameItemLookup().getStorage();
     const auto& loadout = backend.getLoadout();
@@ -297,7 +297,7 @@ void commonPropertiesToJson(const inventory::Item::CommonProperties& properties,
         const auto& item = *itemIt;
         const auto& gameItem = item.gameItem();
         itemConfig["Weapon ID"] = gameItem.getWeaponID();
-        itemConfig["Item Name"] = WeaponNames::instance().getWeaponName(gameItem.getWeaponID());
+        itemConfig["Item Name"] = WeaponNames::instance(interfaces, memory).getWeaponName(gameItem.getWeaponID());
 
         commonPropertiesToJson(item.getProperties().common, itemConfig);
 
@@ -321,7 +321,7 @@ void commonPropertiesToJson(const inventory::Item::CommonProperties& properties,
             itemConfig["Graffiti ID"] = gameItemStorage.getGraffitiKit(gameItem).id;
             if (const auto graffiti = get<inventory::Graffiti>(item); graffiti && graffiti->usesLeft >= 0) {
                 itemConfig["Uses Left"] = graffiti->usesLeft;
-                itemConfig["Item Name"] = WeaponNames::instance().getWeaponName(WeaponId::Graffiti);
+                itemConfig["Item Name"] = WeaponNames::instance(interfaces, memory).getWeaponName(WeaponId::Graffiti);
             }
         } else if (gameItem.isAgent()) {
             agentToJson(item, itemConfig);
@@ -329,7 +329,7 @@ void commonPropertiesToJson(const inventory::Item::CommonProperties& properties,
             if (const auto serviceMedal = get<inventory::ServiceMedal>(item); serviceMedal && serviceMedal->issueDateTimestamp != 0)
                 itemConfig["Issue Date Timestamp"] = serviceMedal->issueDateTimestamp;
         } else if (gameItem.isCrate()) {
-            if (const auto souvenirPackage = get<inventory::SouvenirPackage>(item); souvenirPackage && souvenirPackage->tournamentStage != TournamentStage{}) {
+            if (const auto souvenirPackage = get<inventory::SouvenirPackage>(item); souvenirPackage && souvenirPackage->tournamentStage != csgo::TournamentStage{}) {
                 itemConfig["Tournament Stage"] = souvenirPackage->tournamentStage;
                 itemConfig["Tournament Team 1"] = souvenirPackage->tournamentTeam1;
                 itemConfig["Tournament Team 2"] = souvenirPackage->tournamentTeam2;
@@ -350,7 +350,7 @@ void commonPropertiesToJson(const inventory::Item::CommonProperties& properties,
 
 }
 
-json inventory_changer::toJson(const InventoryChanger& inventoryChanger)
+json inventory_changer::toJson(const Interfaces& interfaces, const Memory& memory, const InventoryChanger& inventoryChanger)
 {
     json j;
 
@@ -358,7 +358,7 @@ json inventory_changer::toJson(const InventoryChanger& inventoryChanger)
 
     const auto& backend = inventoryChanger.getBackend();
 
-    j.emplace("Items", itemsToJson(backend));
+    j.emplace("Items", itemsToJson(interfaces, memory, backend));
     j.emplace("Pick'Em", ::toJson(backend.getPickEm()));
     return j;
 }

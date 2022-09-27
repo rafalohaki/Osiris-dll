@@ -68,30 +68,13 @@
 #include "SDK/UserCmd.h"
 #include "SDK/Constants/UserMessages.h"
 
-#ifdef _WIN32
+#include "GlobalContext.h"
 
-LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+#ifdef _WIN32
 
 static LRESULT __stdcall wndProc(HWND window, UINT msg, WPARAM wParam, LPARAM lParam) noexcept
 {
-    [[maybe_unused]] static const auto once = [](HWND window) noexcept {
-        Netvars::init();
-        EventListener::init();
-
-        ImGui::CreateContext();
-        ImGui_ImplWin32_Init(window);
-        config.emplace(Config{});
-        gui.emplace(GUI{});
-
-        hooks->install();
-
-        return true;
-    }(window);
-
-    ImGui_ImplWin32_WndProcHandler(window, msg, wParam, lParam);
-    interfaces->inputSystem->enableInput(!gui->isOpen());
-
-    return CallWindowProcW(hooks->originalWndProc, window, msg, wParam, lParam);
+    return globalContext.wndProcHook(window, msg, wParam, lParam);
 }
 
 static HRESULT __stdcall reset(IDirect3DDevice9* device, D3DPRESENT_PARAMETERS* params) noexcept
@@ -125,29 +108,29 @@ static void swapWindow(SDL_Window * window) noexcept
     ImGui::NewFrame();
 
     if (const auto& displaySize = ImGui::GetIO().DisplaySize; displaySize.x > 0.0f && displaySize.y > 0.0f) {
-        StreamProofESP::render();
-        Misc::purchaseList();
-        Misc::noscopeCrosshair(ImGui::GetBackgroundDrawList());
-        Misc::recoilCrosshair(ImGui::GetBackgroundDrawList());
-        Misc::drawOffscreenEnemies(ImGui::GetBackgroundDrawList());
-        Misc::drawBombTimer();
+        StreamProofESP::render(*memory, *config);
+        Misc::purchaseList(*interfaces, *memory);
+        Misc::noscopeCrosshair(*memory, ImGui::GetBackgroundDrawList());
+        Misc::recoilCrosshair(*memory, ImGui::GetBackgroundDrawList());
+        Misc::drawOffscreenEnemies(*interfaces, *memory, ImGui::GetBackgroundDrawList());
+        Misc::drawBombTimer(*memory);
         Misc::spectatorList();
-        Visuals::hitMarker(nullptr, ImGui::GetBackgroundDrawList());
-        Visuals::drawMolotovHull(ImGui::GetBackgroundDrawList());
-        Misc::watermark();
+        Visuals::hitMarker(*interfaces, *memory, nullptr, ImGui::GetBackgroundDrawList());
+        Visuals::drawMolotovHull(*memory, ImGui::GetBackgroundDrawList());
+        Misc::watermark(*memory);
 
-        Aimbot::updateInput();
+        Aimbot::updateInput(*config);
         Visuals::updateInput();
-        StreamProofESP::updateInput();
+        StreamProofESP::updateInput(*config);
         Misc::updateInput();
-        Triggerbot::updateInput();
-        Chams::updateInput();
+        Triggerbot::updateInput(*config);
+        Chams::updateInput(*config);
         Glow::updateInput();
 
-        gui->handleToggle();
+        gui->handleToggle(*interfaces);
 
         if (gui->isOpen())
-            gui->render();
+            gui->render(*interfaces, *memory, *config);
     }
 
     ImGui::EndFrame();
@@ -174,162 +157,38 @@ static void swapWindow(SDL_Window * window) noexcept
 
 static bool STDCALL_CONV createMove(LINUX_ARGS(void* thisptr,) float inputSampleTime, UserCmd* cmd) noexcept
 {
-    auto result = hooks->clientMode.callOriginal<bool, WIN32_LINUX(24, 25)>(inputSampleTime, cmd);
-
-    if (!cmd->commandNumber)
-        return result;
-
-#ifdef _WIN32
-    // bool& sendPacket = *reinterpret_cast<bool*>(*reinterpret_cast<std::uintptr_t*>(FRAME_ADDRESS()) - 0x1C);
-    // since 19.02.2022 game update sendPacket is no longer on stack
-    bool sendPacket = true;
-#else
-    bool dummy;
-    bool& sendPacket = dummy;
-#endif
-
-    static auto previousViewAngles{ cmd->viewangles };
-    const auto currentViewAngles{ cmd->viewangles };
-
-    memory->globalVars->serverTime(cmd);
-    Misc::nadePredict();
-    Misc::antiAfkKick(cmd);
-    Misc::fastStop(cmd);
-    Misc::prepareRevolver(cmd);
-    Visuals::removeShadows();
-    Misc::runReportbot();
-    Misc::bunnyHop(cmd);
-    Misc::autoStrafe(cmd);
-    Misc::removeCrouchCooldown(cmd);
-    Misc::autoPistol(cmd);
-    Misc::autoReload(cmd);
-    Misc::updateClanTag();
-    Misc::fakeBan();
-    Misc::stealNames();
-    Misc::revealRanks(cmd);
-    Misc::quickReload(cmd);
-    Misc::fixTabletSignal();
-    Misc::slowwalk(cmd);
-
-    EnginePrediction::run(cmd);
-
-    Aimbot::run(cmd);
-    Triggerbot::run(cmd);
-    Backtrack::run(cmd);
-    Misc::edgejump(cmd);
-    Misc::moonwalk(cmd);
-    Misc::fastPlant(cmd);
-
-    if (!(cmd->buttons & (UserCmd::IN_ATTACK | UserCmd::IN_ATTACK2))) {
-        Misc::chokePackets(sendPacket);
-        AntiAim::run(cmd, previousViewAngles, currentViewAngles, sendPacket);
-    }
-
-    auto viewAnglesDelta{ cmd->viewangles - previousViewAngles };
-    viewAnglesDelta.normalize();
-    viewAnglesDelta.x = std::clamp(viewAnglesDelta.x, -Misc::maxAngleDelta(), Misc::maxAngleDelta());
-    viewAnglesDelta.y = std::clamp(viewAnglesDelta.y, -Misc::maxAngleDelta(), Misc::maxAngleDelta());
-
-    cmd->viewangles = previousViewAngles + viewAnglesDelta;
-
-    cmd->viewangles.normalize();
-    Misc::fixMovement(cmd, currentViewAngles.y);
-
-    cmd->viewangles.x = std::clamp(cmd->viewangles.x, -89.0f, 89.0f);
-    cmd->viewangles.y = std::clamp(cmd->viewangles.y, -180.0f, 180.0f);
-    cmd->viewangles.z = 0.0f;
-    cmd->forwardmove = std::clamp(cmd->forwardmove, -450.0f, 450.0f);
-    cmd->sidemove = std::clamp(cmd->sidemove, -450.0f, 450.0f);
-
-    previousViewAngles = cmd->viewangles;
-
-    return false;
+    return globalContext.createMoveHook(inputSampleTime, cmd);
 }
 
 static void STDCALL_CONV doPostScreenEffects(LINUX_ARGS(void* thisptr,) void* param) noexcept
 {
-    if (interfaces->engine->isInGame()) {
-        Visuals::thirdperson();
-        Visuals::inverseRagdollGravity();
-        Visuals::reduceFlashEffect();
-        Visuals::updateBrightness();
-        Visuals::remove3dSky();
-        Glow::render();
-    }
-    hooks->clientMode.callOriginal<void, WIN32_LINUX(44, 45)>(param);
+    globalContext.doPostScreenEffectsHook(param);
 }
 
 static float STDCALL_CONV getViewModelFov(LINUX_ARGS(void* thisptr)) noexcept
 {
-    float additionalFov = Visuals::viewModelFov();
-    if (localPlayer) {
-        if (const auto activeWeapon = localPlayer->getActiveWeapon(); activeWeapon && activeWeapon->getClientClass()->classId == ClassId::Tablet)
-            additionalFov = 0.0f;
-    }
-
-    return hooks->clientMode.callOriginal<float, WIN32_LINUX(35, 36)>() + additionalFov;
+    return globalContext.getViewModelFovHook();
 }
 
 static void STDCALL_CONV drawModelExecute(LINUX_ARGS(void* thisptr,) void* ctx, void* state, const ModelRenderInfo& info, matrix3x4* customBoneToWorld) noexcept
 {
-    if (interfaces->studioRender->isForcedMaterialOverride())
-        return hooks->modelRender.callOriginal<void, 21>(ctx, state, std::cref(info), customBoneToWorld);
-
-    if (Visuals::removeHands(info.model->name) || Visuals::removeSleeves(info.model->name) || Visuals::removeWeapons(info.model->name))
-        return;
-
-    if (static Chams chams; !chams.render(ctx, state, info, customBoneToWorld))
-        hooks->modelRender.callOriginal<void, 21>(ctx, state, std::cref(info), customBoneToWorld);
-
-    interfaces->studioRender->forcedMaterialOverride(nullptr);
+    globalContext.drawModelExecuteHook(ctx, state, info, customBoneToWorld);
 }
 
 static bool FASTCALL_CONV svCheatsGetBool(void* _this) noexcept
 {
-    if (RETURN_ADDRESS() == memory->cameraThink && Visuals::isThirdpersonOn())
-        return true;
-
-    return hooks->svCheats.getOriginal<bool, WIN32_LINUX(13, 16)>()(_this);
+    return globalContext.svCheatsGetBoolHook(_this, RETURN_ADDRESS());
 }
 
 static void STDCALL_CONV frameStageNotify(LINUX_ARGS(void* thisptr,) csgo::FrameStage stage) noexcept
 {
-    [[maybe_unused]] static auto backtrackInit = (Backtrack::init(), false);
-
-    if (interfaces->engine->isConnected() && !interfaces->engine->isInGame())
-        Misc::changeName(true, nullptr, 0.0f);
-
-    if (stage == csgo::FrameStage::START)
-        GameData::update();
-
-    if (stage == csgo::FrameStage::RENDER_START) {
-        Misc::preserveKillfeed();
-        Misc::disablePanoramablur();
-        Visuals::colorWorld();
-        Misc::updateEventListeners();
-        Visuals::updateEventListeners();
-    }
-    if (interfaces->engine->isInGame()) {
-        Visuals::skybox(stage);
-        Visuals::removeBlur(stage);
-        Misc::oppositeHandKnife(stage);
-        Visuals::removeGrass(stage);
-        Visuals::modifySmoke(stage);
-        Visuals::disablePostProcessing(stage);
-        Visuals::removeVisualRecoil(stage);
-        Visuals::applyZoom(stage);
-        Misc::fixAnimationLOD(stage);
-        Backtrack::update(stage);
-    }
-    InventoryChanger::run(stage);
-
-    hooks->client.callOriginal<void, 37>(stage);
+    globalContext.frameStageNotifyHook(stage);
 }
 
 static int STDCALL_CONV emitSound(LINUX_ARGS(void* thisptr,) void* filter, int entityIndex, int channel, const char* soundEntry, unsigned int soundEntryHash, const char* sample, float volume, int seed, int soundLevel, int flags, int pitch, const Vector& origin, const Vector& direction, void* utlVecOrigins, bool updatePositions, float soundtime, int speakerentity, void* soundParams) noexcept
 {
-    Sound::modulateSound(soundEntry, entityIndex, volume);
-    Misc::autoAccept(soundEntry);
+    Sound::modulateSound(*interfaces, *memory, soundEntry, entityIndex, volume);
+    Misc::autoAccept(*interfaces, *memory, soundEntry);
 
     volume = std::clamp(volume, 0.0f, 1.0f);
     return hooks->sound.callOriginal<int, WIN32_LINUX(5, 6)>(filter, entityIndex, channel, soundEntry, soundEntryHash, sample, volume, seed, soundLevel, flags, pitch, std::cref(origin), std::cref(direction), utlVecOrigins, updatePositions, soundtime, speakerentity, soundParams);
@@ -411,7 +270,7 @@ static int STDCALL_CONV listLeavesInBox(LINUX_ARGS(void* thisptr, ) const Vector
 static int FASTCALL_CONV dispatchSound(SoundInfo& soundInfo) noexcept
 {
     if (const char* soundName = interfaces->soundEmitter->getSoundName(soundInfo.soundIndex)) {
-        Sound::modulateSound(soundName, soundInfo.entityIndex, soundInfo.volume);
+        Sound::modulateSound(*interfaces, *memory, soundName, soundInfo.entityIndex, soundInfo.volume);
         soundInfo.volume = std::clamp(soundInfo.volume, 0.0f, 1.0f);
     }
     return hooks->originalDispatchSound(soundInfo);
@@ -419,8 +278,8 @@ static int FASTCALL_CONV dispatchSound(SoundInfo& soundInfo) noexcept
 
 static void STDCALL_CONV render2dEffectsPreHud(LINUX_ARGS(void* thisptr,) void* viewSetup) noexcept
 {
-    Visuals::applyScreenEffects();
-    Visuals::hitEffect();
+    Visuals::applyScreenEffects(*interfaces, *memory);
+    Visuals::hitEffect(*interfaces, *memory);
     hooks->viewRender.callOriginal<void, WIN32_LINUX(39, 40)>(viewSetup);
 }
 
@@ -450,7 +309,7 @@ static void STDCALL_CONV updateColorCorrectionWeights(LINUX_ARGS(void* thisptr))
 {
     hooks->clientMode.callOriginal<void, WIN32_LINUX(58, 61)>();
 
-    Visuals::performColorCorrection();
+    Visuals::performColorCorrection(*memory);
     if (Visuals::shouldRemoveScopeOverlay())
         *memory->vignette = 0.0f;
 }
@@ -473,7 +332,7 @@ static void STDCALL_CONV renderSmokeOverlay(LINUX_ARGS(void* thisptr,) bool upda
 static double STDCALL_CONV getArgAsNumber(LINUX_ARGS(void* thisptr,) void* params, int index) noexcept
 {
     const auto result = hooks->panoramaMarshallHelper.callOriginal<double, 5>(params, index);
-    inventory_changer::InventoryChanger::instance().getArgAsNumberHook(static_cast<int>(result), RETURN_ADDRESS());
+    inventory_changer::InventoryChanger::instance(*interfaces, *memory).getArgAsNumberHook(*memory, static_cast<int>(result), RETURN_ADDRESS());
     return result;
 }
 
@@ -482,46 +341,46 @@ static const char* STDCALL_CONV getArgAsString(LINUX_ARGS(void* thisptr,) void* 
     const auto result = hooks->panoramaMarshallHelper.callOriginal<const char*, 7>(params, index);
 
     if (result)
-        inventory_changer::InventoryChanger::instance().getArgAsStringHook(result, RETURN_ADDRESS(), params);
+        inventory_changer::InventoryChanger::instance(*interfaces, *memory).getArgAsStringHook(*memory, result, RETURN_ADDRESS(), params);
 
     return result;
 }
 
 static void STDCALL_CONV setResultInt(LINUX_ARGS(void* thisptr, ) void* params, int result) noexcept
 {
-    result = inventory_changer::InventoryChanger::instance().setResultIntHook(RETURN_ADDRESS(), params, result);
+    result = inventory_changer::InventoryChanger::instance(*interfaces, *memory).setResultIntHook(*memory, RETURN_ADDRESS(), params, result);
     hooks->panoramaMarshallHelper.callOriginal<void, WIN32_LINUX(14, 11)>(params, result);
 }
 
 static unsigned STDCALL_CONV getNumArgs(LINUX_ARGS(void* thisptr, ) void* params) noexcept
 {
     const auto result = hooks->panoramaMarshallHelper.callOriginal<unsigned, 1>(params);
-    inventory_changer::InventoryChanger::instance().getNumArgsHook(result, RETURN_ADDRESS(), params);
+    inventory_changer::InventoryChanger::instance(*interfaces, *memory).getNumArgsHook(*memory, result, RETURN_ADDRESS(), params);
     return result;
 }
 
 static void STDCALL_CONV updateInventoryEquippedState(LINUX_ARGS(void* thisptr, ) CSPlayerInventory* inventory, std::uint64_t itemID, csgo::Team team, int slot, bool swap) noexcept
 {
-    inventory_changer::InventoryChanger::instance().onItemEquip(team, slot, itemID);
+    inventory_changer::InventoryChanger::instance(*interfaces, *memory).onItemEquip(team, slot, itemID);
     return hooks->inventoryManager.callOriginal<void, WIN32_LINUX(29, 30)>(inventory, itemID, team, slot, swap);
 }
 
 static void STDCALL_CONV soUpdated(LINUX_ARGS(void* thisptr, ) SOID owner, SharedObject* object, int event) noexcept
 {
-    InventoryChanger::onSoUpdated(object);
+    inventory_changer::InventoryChanger::instance(*interfaces, *memory).onSoUpdated(object);
     hooks->inventory.callOriginal<void, 1>(owner, object, event);
 }
 
 static bool STDCALL_CONV dispatchUserMessage(LINUX_ARGS(void* thisptr, ) csgo::UserMessageType type, int passthroughFlags, int size, const void* data) noexcept
 {
     if (type == csgo::UserMessageType::Text)
-        inventory_changer::InventoryChanger::instance().onUserTextMsg(data, size);
+        inventory_changer::InventoryChanger::instance(*interfaces, *memory).onUserTextMsg(*memory, data, size);
     else if (type == csgo::UserMessageType::VoteStart)
-        Misc::onVoteStart(data, size);
+        Misc::onVoteStart(*interfaces, *memory, data, size);
     else if (type == csgo::UserMessageType::VotePass)
-        Misc::onVotePass();
+        Misc::onVotePass(*memory);
     else if (type == csgo::UserMessageType::VoteFailed)
-        Misc::onVoteFailed();
+        Misc::onVoteFailed(*memory);
     
     return hooks->client.callOriginal<bool, 38>(type, passthroughFlags, size, data);
 }
@@ -542,42 +401,38 @@ Hooks::Hooks(HMODULE moduleHandle) noexcept : moduleHandle{ moduleHandle }
     _MM_SET_DENORMALS_ZERO_MODE(_MM_DENORMALS_ZERO_ON);
 #endif
 
-    // interfaces and memory shouldn't be initialized in wndProc because they show MessageBox on error which would cause deadlock
-    interfaces.emplace(Interfaces{});
-    memory.emplace(Memory{});
-
     window = FindWindowW(L"Valve001", nullptr);
     originalWndProc = WNDPROC(SetWindowLongPtrW(window, GWLP_WNDPROC, LONG_PTR(&wndProc)));
 }
 
 #endif
 
-void Hooks::install() noexcept
+void Hooks::install(const Interfaces& interfaces, const Memory& memory) noexcept
 {
 #ifdef _WIN32
-    originalPresent = **reinterpret_cast<decltype(originalPresent)**>(memory->present);
-    **reinterpret_cast<decltype(present)***>(memory->present) = present;
-    originalReset = **reinterpret_cast<decltype(originalReset)**>(memory->reset);
-    **reinterpret_cast<decltype(reset)***>(memory->reset) = reset;
+    originalPresent = **reinterpret_cast<decltype(originalPresent)**>(memory.present);
+    **reinterpret_cast<decltype(present)***>(memory.present) = present;
+    originalReset = **reinterpret_cast<decltype(originalReset)**>(memory.reset);
+    **reinterpret_cast<decltype(reset)***>(memory.reset) = reset;
 
     if constexpr (std::is_same_v<HookType, MinHook>)
         MH_Initialize();
 #else
     ImGui_ImplOpenGL3_Init();
 
-    swapWindow = *reinterpret_cast<decltype(swapWindow)*>(memory->swapWindow);
-    *reinterpret_cast<decltype(::swapWindow)**>(memory->swapWindow) = ::swapWindow;
+    swapWindow = *reinterpret_cast<decltype(swapWindow)*>(memory.swapWindow);
+    *reinterpret_cast<decltype(::swapWindow)**>(memory.swapWindow) = ::swapWindow;
 
 #endif
     
-    bspQuery.init(interfaces->engine->getBSPTreeQuery());
+    bspQuery.init(interfaces.engine->getBSPTreeQuery());
     bspQuery.hookAt(6, &listLeavesInBox);
 
-    client.init(interfaces->client);
+    client.init(interfaces.client);
     client.hookAt(37, &frameStageNotify);
     client.hookAt(38, &dispatchUserMessage);
 
-    clientMode.init(memory->clientMode);
+    clientMode.init(memory.clientMode);
     clientMode.hookAt(WIN32_LINUX(17, 18), &shouldDrawFog);
     clientMode.hookAt(WIN32_LINUX(18, 19), &overrideView);
     clientMode.hookAt(WIN32_LINUX(24, 25), &createMove);
@@ -586,53 +441,53 @@ void Hooks::install() noexcept
     clientMode.hookAt(WIN32_LINUX(44, 45), &doPostScreenEffects);
     clientMode.hookAt(WIN32_LINUX(58, 61), &updateColorCorrectionWeights);
 
-    engine.init(interfaces->engine);
+    engine.init(interfaces.engine);
     engine.hookAt(82, &isPlayingDemo);
     engine.hookAt(101, &getScreenAspectRatio);
 #ifdef _WIN32
-    keyValuesSystem.init(memory->keyValuesSystem);
+    keyValuesSystem.init(memory.keyValuesSystem);
     keyValuesSystem.hookAt(2, &allocKeyValuesMemory);
 #endif
     engine.hookAt(WIN32_LINUX(218, 219), &getDemoPlaybackParameters);
 
-    inventory.init(memory->inventoryManager->getLocalInventory());
+    inventory.init(memory.inventoryManager->getLocalInventory());
     inventory.hookAt(1, &soUpdated);
 
-    inventoryManager.init(memory->inventoryManager);
+    inventoryManager.init(memory.inventoryManager);
     inventoryManager.hookAt(WIN32_LINUX(29, 30), &updateInventoryEquippedState);
 
-    modelRender.init(interfaces->modelRender);
+    modelRender.init(interfaces.modelRender);
     modelRender.hookAt(21, &drawModelExecute);
 
-    panoramaMarshallHelper.init(memory->panoramaMarshallHelper);
+    panoramaMarshallHelper.init(memory.panoramaMarshallHelper);
     panoramaMarshallHelper.hookAt(1, &getNumArgs);
     panoramaMarshallHelper.hookAt(5, &getArgAsNumber);
     panoramaMarshallHelper.hookAt(7, &getArgAsString);
     panoramaMarshallHelper.hookAt(WIN32_LINUX(14, 11), &setResultInt);
 
-    sound.init(interfaces->sound);
+    sound.init(interfaces.sound);
     sound.hookAt(WIN32_LINUX(5, 6), &emitSound);
 
-    surface.init(interfaces->surface);
+    surface.init(interfaces.surface);
     surface.hookAt(WIN32_LINUX(15, 14), &setDrawColor);
     
-    svCheats.init(interfaces->cvar->findVar("sv_cheats"));
+    svCheats.init(interfaces.cvar->findVar("sv_cheats"));
     svCheats.hookAt(WIN32_LINUX(13, 16), &svCheatsGetBool);
 
-    viewRender.init(memory->viewRender);
+    viewRender.init(memory.viewRender);
     viewRender.hookAt(WIN32_LINUX(39, 40), &render2dEffectsPreHud);
     viewRender.hookAt(WIN32_LINUX(41, 42), &renderSmokeOverlay);
 
 #ifdef _WIN32
-    if (DWORD oldProtection; VirtualProtect(memory->dispatchSound, 4, PAGE_EXECUTE_READWRITE, &oldProtection)) {
+    if (DWORD oldProtection; VirtualProtect(memory.dispatchSound, 4, PAGE_EXECUTE_READWRITE, &oldProtection)) {
 #else
-    if (const auto addressPageAligned = std::uintptr_t(memory->dispatchSound) - std::uintptr_t(memory->dispatchSound) % sysconf(_SC_PAGESIZE);
+    if (const auto addressPageAligned = std::uintptr_t(memory.dispatchSound) - std::uintptr_t(memory.dispatchSound) % sysconf(_SC_PAGESIZE);
         mprotect((void*)addressPageAligned, 4, PROT_READ | PROT_WRITE | PROT_EXEC) == 0) {
 #endif
-        originalDispatchSound = decltype(originalDispatchSound)(uintptr_t(memory->dispatchSound + 1) + *memory->dispatchSound);
-        *memory->dispatchSound = uintptr_t(&dispatchSound) - uintptr_t(memory->dispatchSound + 1);
+        originalDispatchSound = decltype(originalDispatchSound)(uintptr_t(memory.dispatchSound + 1) + *memory.dispatchSound);
+        *memory.dispatchSound = uintptr_t(&dispatchSound) - uintptr_t(memory.dispatchSound + 1);
 #ifdef _WIN32
-        VirtualProtect(memory->dispatchSound, 4, oldProtection, nullptr);
+        VirtualProtect(memory.dispatchSound, 4, oldProtection, nullptr);
 #endif
     }
 
@@ -653,7 +508,7 @@ static DWORD WINAPI unload(HMODULE moduleHandle) noexcept
     Sleep(100);
 
     interfaces->inputSystem->enableInput(true);
-    EventListener::remove();
+    globalContext.gameEventListener->remove();
 
     ImGui_ImplDX9_Shutdown();
     ImGui_ImplWin32_Shutdown();
@@ -666,10 +521,10 @@ static DWORD WINAPI unload(HMODULE moduleHandle) noexcept
 
 #endif
 
-void Hooks::uninstall() noexcept
+void Hooks::uninstall(const Interfaces& interfaces, const Memory& memory) noexcept
 {
-    Misc::updateEventListeners(true);
-    Visuals::updateEventListeners(true);
+    Misc::updateEventListeners(interfaces, memory, true);
+    Visuals::updateEventListeners(interfaces, memory, true);
 
 #ifdef _WIN32
     if constexpr (std::is_same_v<HookType, MinHook>) {
@@ -693,26 +548,26 @@ void Hooks::uninstall() noexcept
 
     Netvars::restore();
 
-    Glow::clearCustomObjects();
-    inventory_changer::InventoryChanger::instance().reset();
+    Glow::clearCustomObjects(memory);
+    inventory_changer::InventoryChanger::instance(interfaces, memory).reset(interfaces, memory);
 
 #ifdef _WIN32
     keyValuesSystem.restore();
 
     SetWindowLongPtrW(window, GWLP_WNDPROC, LONG_PTR(originalWndProc));
-    **reinterpret_cast<void***>(memory->present) = originalPresent;
-    **reinterpret_cast<void***>(memory->reset) = originalReset;
+    **reinterpret_cast<void***>(memory.present) = originalPresent;
+    **reinterpret_cast<void***>(memory.reset) = originalReset;
 
-    if (DWORD oldProtection; VirtualProtect(memory->dispatchSound, 4, PAGE_EXECUTE_READWRITE, &oldProtection)) {
-        *memory->dispatchSound = uintptr_t(originalDispatchSound) - uintptr_t(memory->dispatchSound + 1);
-        VirtualProtect(memory->dispatchSound, 4, oldProtection, nullptr);
+    if (DWORD oldProtection; VirtualProtect(memory.dispatchSound, 4, PAGE_EXECUTE_READWRITE, &oldProtection)) {
+        *memory.dispatchSound = uintptr_t(originalDispatchSound) - uintptr_t(memory.dispatchSound + 1);
+        VirtualProtect(memory.dispatchSound, 4, oldProtection, nullptr);
     }
 
     if (HANDLE thread = CreateThread(nullptr, 0, LPTHREAD_START_ROUTINE(unload), moduleHandle, 0, nullptr))
         CloseHandle(thread);
 #else
-    *reinterpret_cast<decltype(pollEvent)*>(memory->pollEvent) = pollEvent;
-    *reinterpret_cast<decltype(swapWindow)*>(memory->swapWindow) = swapWindow;
+    *reinterpret_cast<decltype(pollEvent)*>(memory.pollEvent) = pollEvent;
+    *reinterpret_cast<decltype(swapWindow)*>(memory.swapWindow) = swapWindow;
 #endif
 }
 
@@ -725,32 +580,13 @@ void Hooks::callOriginalDrawModelExecute(void* ctx, void* state, const ModelRend
 
 static int pollEvent(SDL_Event* event) noexcept
 {
-    [[maybe_unused]] static const auto once = []() noexcept {
-        Netvars::init();
-        EventListener::init();
-
-        ImGui::CreateContext();
-        config.emplace(Config{});
-
-        gui.emplace(GUI{});
-
-        hooks->install();
-
-        return true;
-    }();
-
-    const auto result = hooks->pollEvent(event);
-
-    if (result && ImGui_ImplSDL2_ProcessEvent(event) && gui->isOpen())
-        event->type = 0;
-
-    return result;
+    return globalContext.pollEventHook(event);
 }
 
 Hooks::Hooks() noexcept
 {
     interfaces.emplace(Interfaces{});
-    memory.emplace(Memory{});
+    memory.emplace(Memory{ *interfaces->client });
 
     pollEvent = *reinterpret_cast<decltype(pollEvent)*>(memory->pollEvent);
     *reinterpret_cast<decltype(::pollEvent)**>(memory->pollEvent) = ::pollEvent;

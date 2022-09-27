@@ -113,6 +113,7 @@
     <ClCompile Include="ConfigStructs.cpp" />
     <ClCompile Include="EventListener.cpp" />
     <ClCompile Include="GameData.cpp" />
+    <ClCompile Include="GlobalContext.cpp" />
     <ClCompile Include="Hacks\Aimbot.cpp" />
     <ClCompile Include="Hacks\AntiAim.cpp" />
     <ClCompile Include="Hacks\Backtrack.cpp" />
@@ -191,6 +192,7 @@
     <ClInclude Include="ConfigStructs.h" />
     <ClInclude Include="EventListener.h" />
     <ClInclude Include="GameData.h" />
+    <ClInclude Include="GlobalContext.h" />
     <ClInclude Include="Hacks\Aimbot.h" />
     <ClInclude Include="Hacks\AntiAim.h" />
     <ClInclude Include="Hacks\Backtrack.h" />
@@ -256,7 +258,7 @@
     <ClInclude Include="InventoryChanger\ItemGenerator\DropGenerator.h" />
     <ClInclude Include="InventoryChanger\ItemGenerator\ItemGenerator.h" />
     <ClInclude Include="InventoryChanger\ItemGenerator\TournamentMatches.h" />
-    <ClInclude Include="InventoryChanger\ItemGenerator\Utils.h" />
+    <ClInclude Include="InventoryChanger\ItemId.h" />
     <ClInclude Include="InventoryChanger\WeaponNames.h" />
     <ClInclude Include="JsonForward.h" />
     <ClInclude Include="Netvars.h" />
@@ -270,9 +272,13 @@
     <ClInclude Include="SDK\ClientMode.h" />
     <ClInclude Include="SDK\Constants\ClassId.h" />
     <ClInclude Include="SDK\Constants\FrameStage.h" />
+    <ClInclude Include="SDK\Constants\ItemId.h" />
     <ClInclude Include="SDK\Constants\PaintkitConditionChances.h" />
+    <ClInclude Include="SDK\Constants\PaintkitWear.h" />
     <ClInclude Include="SDK\Constants\ProPlayer.h" />
+    <ClInclude Include="SDK\Constants\StickerId.h" />
     <ClInclude Include="SDK\Constants\Tournament.h" />
+    <ClInclude Include="SDK\Constants\TournamentStage.h" />
     <ClInclude Include="SDK\Constants\TournamentTeam.h" />
     <ClInclude Include="SDK\Constants\UserMessages.h" />
     <ClInclude Include="SDK\ConVar.h" />
