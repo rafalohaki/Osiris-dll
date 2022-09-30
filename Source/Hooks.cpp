@@ -74,7 +74,7 @@
 
 static LRESULT __stdcall wndProc(HWND window, UINT msg, WPARAM wParam, LPARAM lParam) noexcept
 {
-    return globalContext.wndProcHook(window, msg, wParam, lParam);
+    return globalContext->wndProcHook(window, msg, wParam, lParam);
 }
 
 static HRESULT __stdcall reset(IDirect3DDevice9* device, D3DPRESENT_PARAMETERS* params) noexcept
@@ -157,32 +157,32 @@ static void swapWindow(SDL_Window * window) noexcept
 
 static bool STDCALL_CONV createMove(LINUX_ARGS(void* thisptr,) float inputSampleTime, UserCmd* cmd) noexcept
 {
-    return globalContext.createMoveHook(inputSampleTime, cmd);
+    return globalContext->createMoveHook(inputSampleTime, cmd);
 }
 
 static void STDCALL_CONV doPostScreenEffects(LINUX_ARGS(void* thisptr,) void* param) noexcept
 {
-    globalContext.doPostScreenEffectsHook(param);
+    globalContext->doPostScreenEffectsHook(param);
 }
 
 static float STDCALL_CONV getViewModelFov(LINUX_ARGS(void* thisptr)) noexcept
 {
-    return globalContext.getViewModelFovHook();
+    return globalContext->getViewModelFovHook();
 }
 
 static void STDCALL_CONV drawModelExecute(LINUX_ARGS(void* thisptr,) void* ctx, void* state, const ModelRenderInfo& info, matrix3x4* customBoneToWorld) noexcept
 {
-    globalContext.drawModelExecuteHook(ctx, state, info, customBoneToWorld);
+    globalContext->drawModelExecuteHook(ctx, state, info, customBoneToWorld);
 }
 
 static bool FASTCALL_CONV svCheatsGetBool(void* _this) noexcept
 {
-    return globalContext.svCheatsGetBoolHook(_this, RETURN_ADDRESS());
+    return globalContext->svCheatsGetBoolHook(_this, RETURN_ADDRESS());
 }
 
 static void STDCALL_CONV frameStageNotify(LINUX_ARGS(void* thisptr,) csgo::FrameStage stage) noexcept
 {
-    globalContext.frameStageNotifyHook(stage);
+    globalContext->frameStageNotifyHook(stage);
 }
 
 static int STDCALL_CONV emitSound(LINUX_ARGS(void* thisptr,) void* filter, int entityIndex, int channel, const char* soundEntry, unsigned int soundEntryHash, const char* sample, float volume, int seed, int soundLevel, int flags, int pitch, const Vector& origin, const Vector& direction, void* utlVecOrigins, bool updatePositions, float soundtime, int speakerentity, void* soundParams) noexcept
@@ -420,8 +420,8 @@ void Hooks::install(const Interfaces& interfaces, const Memory& memory) noexcept
 #else
     ImGui_ImplOpenGL3_Init();
 
-    swapWindow = *reinterpret_cast<decltype(swapWindow)*>(memory.swapWindow);
-    *reinterpret_cast<decltype(::swapWindow)**>(memory.swapWindow) = ::swapWindow;
+    swapWindow = *reinterpret_cast<decltype(swapWindow)*>(sdlFunctions.swapWindow);
+    *reinterpret_cast<decltype(::swapWindow)**>(sdlFunctions.swapWindow) = ::swapWindow;
 
 #endif
     
@@ -508,7 +508,7 @@ static DWORD WINAPI unload(HMODULE moduleHandle) noexcept
     Sleep(100);
 
     interfaces->inputSystem->enableInput(true);
-    globalContext.gameEventListener->remove();
+    globalContext->gameEventListener->remove();
 
     ImGui_ImplDX9_Shutdown();
     ImGui_ImplWin32_Shutdown();
@@ -566,8 +566,8 @@ void Hooks::uninstall(const Interfaces& interfaces, const Memory& memory) noexce
     if (HANDLE thread = CreateThread(nullptr, 0, LPTHREAD_START_ROUTINE(unload), moduleHandle, 0, nullptr))
         CloseHandle(thread);
 #else
-    *reinterpret_cast<decltype(pollEvent)*>(memory.pollEvent) = pollEvent;
-    *reinterpret_cast<decltype(swapWindow)*>(memory.swapWindow) = swapWindow;
+    *reinterpret_cast<decltype(pollEvent)*>(sdlFunctions.pollEvent) = pollEvent;
+    *reinterpret_cast<decltype(swapWindow)*>(sdlFunctions.swapWindow) = swapWindow;
 #endif
 }
 
@@ -580,16 +580,14 @@ void Hooks::callOriginalDrawModelExecute(void* ctx, void* state, const ModelRend
 
 static int pollEvent(SDL_Event* event) noexcept
 {
-    return globalContext.pollEventHook(event);
+    return globalContext->pollEventHook(event);
 }
 
 Hooks::Hooks() noexcept
+    : sdlFunctions{ linux_platform::SharedObject{ linux_platform::DynamicLibraryWrapper{}, "libSDL2-2.0.so.0" } }
 {
-    interfaces.emplace(Interfaces{});
-    memory.emplace(Memory{ *interfaces->client });
-
-    pollEvent = *reinterpret_cast<decltype(pollEvent)*>(memory->pollEvent);
-    *reinterpret_cast<decltype(::pollEvent)**>(memory->pollEvent) = ::pollEvent;
+    pollEvent = *reinterpret_cast<decltype(pollEvent)*>(sdlFunctions.pollEvent);
+    *reinterpret_cast<decltype(::pollEvent)**>(sdlFunctions.pollEvent) = ::pollEvent;
 }
 
 #endif

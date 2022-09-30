@@ -3,6 +3,7 @@
 #include <cassert>
 #include <cstring>
 #include <limits>
+#include <span>
 #include <string_view>
 #include <utility>
 
@@ -108,17 +109,17 @@ static ModuleInfo getModuleInformation(const char* name) noexcept
 }
 
 template <bool ReportNotFound = true>
-static std::uintptr_t findPattern(ModuleInfo moduleInfo, std::string_view pattern) noexcept
+static std::uintptr_t findPattern(std::span<const std::byte> bytes, std::string_view pattern) noexcept
 {
     static auto id = 0;
     ++id;
 
-    if (moduleInfo.base && moduleInfo.size) {
+    if (!bytes.empty()) {
         const auto lastIdx = pattern.length() - 1;
         const auto badCharTable = generateBadCharTable(pattern);
 
-        auto start = static_cast<const char*>(moduleInfo.base);
-        const auto end = start + moduleInfo.size - pattern.length();
+        auto start = reinterpret_cast<const char*>(bytes.data());
+        const auto end = start + bytes.size() - pattern.length();
 
         while (start <= end) {
             int i = lastIdx;
@@ -140,10 +141,11 @@ static std::uintptr_t findPattern(ModuleInfo moduleInfo, std::string_view patter
     return 0;
 }
 
-template <bool ReportNotFound = true>
-static std::uintptr_t findPattern(const char* moduleName, std::string_view pattern) noexcept
+template <bool ReportNotFound>
+std::uintptr_t findPattern(const char* moduleName, std::string_view pattern) noexcept
 {
-    return findPattern<ReportNotFound>(getModuleInformation(moduleName), pattern);
+    const auto moduleInfo = getModuleInformation(moduleName);
+    return findPattern<ReportNotFound>(std::span<const std::byte>{ reinterpret_cast<const std::byte*>(moduleInfo.base), moduleInfo.size }, pattern);
 }
 
 Memory::Memory(Client& clientInterface) noexcept
@@ -239,19 +241,12 @@ Memory::Memory(Client& clientInterface) noexcept
     keyValuesAllocEngine = relativeToAbsolute<std::uintptr_t>(findPattern(ENGINE_DLL, "\xE8????\x83\xC4\x08\x84\xC0\x75\x10\xFF\x75\x0C") + 1) + 0x4A;
     keyValuesAllocClient = relativeToAbsolute<std::uintptr_t>(findPattern(CLIENT_DLL, "\xE8????\x83\xC4\x08\x84\xC0\x75\x10") + 1) + 0x3E;
 
-    jmpEbxGadgetInClient = findPattern(CLIENT_DLL, "\x1B\xFF\x23\xF8\xF6\x87") + 1;
-
     shouldDrawFogReturnAddress = relativeToAbsolute<std::uintptr_t>(findPattern(CLIENT_DLL, "\xE8????\x8B\x0D????\x0F\xB6\xD0") + 1) + 82;
 #else
     const auto tier0 = dlopen(TIER0_DLL, RTLD_NOLOAD | RTLD_NOW);
     debugMsg = decltype(debugMsg)(dlsym(tier0, "Msg"));
     conColorMsg = decltype(conColorMsg)(dlsym(tier0, "_Z11ConColorMsgRK5ColorPKcz"));
     dlclose(tier0);
-
-    const auto libSDL = dlopen("libSDL2-2.0.so.0", RTLD_LAZY | RTLD_NOLOAD);
-    pollEvent = relativeToAbsolute<uintptr_t>(uintptr_t(dlsym(libSDL, "SDL_PollEvent")) + 2);
-    swapWindow = relativeToAbsolute<uintptr_t>(uintptr_t(dlsym(libSDL, "SDL_GL_SwapWindow")) + 2);
-    dlclose(libSDL);
 
     globalVars = *relativeToAbsolute<GlobalVars**>((*reinterpret_cast<std::uintptr_t**>(&clientInterface))[11] + 16);
     itemSystem = relativeToAbsolute<decltype(itemSystem)>(findPattern(CLIENT_DLL, "\xE8????\x4D\x63\xEC") + 1);

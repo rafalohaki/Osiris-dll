@@ -8,6 +8,7 @@
 #include <d3d9.h>
 #include <Windows.h>
 #elif __linux__
+#include "SdlFunctions.h"
 struct SDL_Window;
 union SDL_Event;
 #endif
@@ -19,6 +20,7 @@ union SDL_Event;
 #include "SDK/Platform.h"
 
 #include "Interfaces.h"
+#include "Memory.h"
 
 class matrix3x4;
 struct ModelRenderInfo;
@@ -41,6 +43,8 @@ public:
     std::add_pointer_t<HRESULT __stdcall(IDirect3DDevice9*, D3DPRESENT_PARAMETERS*)> originalReset;
 #else
     Hooks() noexcept;
+
+    SdlFunctions sdlFunctions;
 
     std::add_pointer_t<int(SDL_Event*)> pollEvent;
     std::add_pointer_t<void(SDL_Window*)> swapWindow;

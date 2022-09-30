@@ -43,6 +43,9 @@ struct GlowObjectManager;
 struct PanoramaEventRegistration;
 struct Vector;
 
+template <bool ReportNotFound = true>
+std::uintptr_t findPattern(const char* moduleName, std::string_view pattern) noexcept;
+
 class Memory {
 public:
     Memory(Client& clientInterface) noexcept;
@@ -50,9 +53,6 @@ public:
 #ifdef _WIN32
     std::uintptr_t present;
     std::uintptr_t reset;
-#else
-    std::uintptr_t pollEvent;
-    std::uintptr_t swapWindow;
 #endif
 
     ClientMode* clientMode;
@@ -162,8 +162,6 @@ public:
     class KeyValuesSystem* keyValuesSystem;
     std::uintptr_t keyValuesAllocEngine;
     std::uintptr_t keyValuesAllocClient;
-
-    std::uintptr_t jmpEbxGadgetInClient;
 
     std::uintptr_t shouldDrawFogReturnAddress;
 #endif
