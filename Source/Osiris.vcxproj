@@ -264,12 +264,16 @@
     <ClInclude Include="JsonForward.h" />
     <ClInclude Include="Netvars.h" />
     <ClInclude Include="pch.h" />
+    <ClInclude Include="Platform\DynamicLibraryView.h" />
+    <ClInclude Include="Platform\RetSpoofInvoker.h" />
+    <ClInclude Include="Platform\Windows\DynamicLibraryView.h" />
+    <ClInclude Include="Platform\Windows\DynamicLibraryWrapper.h" />
+    <ClInclude Include="Platform\Windows\RetSpoofInvoker.h" />
     <ClInclude Include="ProtobufReader.h" />
     <ClInclude Include="Resources\avatar_ct.h" />
     <ClInclude Include="Resources\avatar_tt.h" />
     <ClInclude Include="Resources\Resource.h" />
     <ClInclude Include="RetSpoofGadgets.h" />
-    <ClInclude Include="RetSpoofInvoker.h" />
     <ClInclude Include="SDK\AnimState.h" />
     <ClInclude Include="SDK\Client.h" />
     <ClInclude Include="SDK\ClientMode.h" />
@@ -344,6 +348,7 @@
     <ClInclude Include="SDK\Vector.h" />
     <ClInclude Include="SDK\Utils.h" />
     <ClInclude Include="SDK\ViewRenderBeams.h" />
+    <ClInclude Include="SDK\ViewSetup.h" />
     <ClInclude Include="SDK\VirtualMethod.h" />
     <ClInclude Include="SDK\WeaponId.h" />
     <ClInclude Include="SDK\WeaponData.h" />

@@ -2,14 +2,13 @@
 
 #include <cstdint>
 
-#include "RetSpoofInvoker.h"
+#include "Platform/RetSpoofInvoker.h"
 
 struct RetSpoofGadgets {
     RetSpoofGadgets();
 
     RetSpoofInvoker jmpEbxInClient;
+    RetSpoofInvoker engine;
 };
 
-#ifdef _WIN32
 inline RetSpoofGadgets retSpoofGadgets;
-#endif
