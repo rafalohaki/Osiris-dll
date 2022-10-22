@@ -39,7 +39,7 @@ Vector Entity::getBonePosition(const Memory& memory, int bone) noexcept
         return Vector{ };
 }
 
-bool Entity::isVisible(EngineTrace& engineTrace, const Memory& memory, const Vector& position) noexcept
+bool Entity::isVisible(const EngineTrace& engineTrace, const Memory& memory, const Vector& position) noexcept
 {
     if (!localPlayer)
         return false;
@@ -69,14 +69,14 @@ float Entity::getMaxDesyncAngle() noexcept
     return animState->velocitySubtractY * yawModifier;
 }
 
-int Entity::getUserId(Engine& engine) noexcept
+int Entity::getUserId(const Engine& engine) noexcept
 {
     if (PlayerInfo playerInfo; engine.getPlayerInfo(index(), playerInfo))
         return playerInfo.userId;
     return -1;
 }
 
-std::uint64_t Entity::getSteamId(Engine& engine) noexcept
+std::uint64_t Entity::getSteamId(const Engine& engine) noexcept
 {
     if (PlayerInfo playerInfo; engine.getPlayerInfo(index(), playerInfo))
         return playerInfo.xuid;
@@ -116,7 +116,7 @@ void Entity::getPlayerName(const Interfaces& interfaces, const Memory& memory, c
     interfaces.localize->convertUnicodeToAnsi(wide, out, 128);
 }
 
-bool Entity::canSee(EngineTrace& engineTrace, const Memory& memory, Entity* other, const Vector& pos) noexcept
+bool Entity::canSee(const EngineTrace& engineTrace, const Memory& memory, Entity* other, const Vector& pos) noexcept
 {
     const auto eyePos = getEyePosition();
     if (memory.lineGoesThroughSmoke(eyePos, pos, 1))
@@ -131,17 +131,17 @@ bool Entity::visibleTo(const EngineInterfaces& engineInterfaces, const Memory& m
 {
     assert(isAlive());
 
-    if (other->canSee(*engineInterfaces.engineTrace, memory, this, getAbsOrigin() + Vector{ 0.0f, 0.0f, 5.0f }))
+    if (other->canSee(engineInterfaces.engineTrace, memory, this, getAbsOrigin() + Vector{ 0.0f, 0.0f, 5.0f }))
         return true;
 
-    if (other->canSee(*engineInterfaces.engineTrace, memory, this, getEyePosition() + Vector{ 0.0f, 0.0f, 5.0f }))
+    if (other->canSee(engineInterfaces.engineTrace, memory, this, getEyePosition() + Vector{ 0.0f, 0.0f, 5.0f }))
         return true;
 
     const auto model = getModel();
     if (!model)
         return false;
 
-    const auto studioModel = engineInterfaces.modelInfo->getStudioModel(model);
+    const auto studioModel = engineInterfaces.getModelInfo().getStudioModel(model);
     if (!studioModel)
         return false;
 
@@ -155,7 +155,7 @@ bool Entity::visibleTo(const EngineInterfaces& engineInterfaces, const Memory& m
 
     for (const auto boxNum : { Hitbox::Belly, Hitbox::LeftForearm, Hitbox::RightForearm }) {
         const auto hitbox = set->getHitbox(boxNum);
-        if (hitbox && other->canSee(*engineInterfaces.engineTrace, memory, this, boneMatrices[hitbox->bone].origin()))
+        if (hitbox && other->canSee(engineInterfaces.engineTrace, memory, this, boneMatrices[hitbox->bone].origin()))
             return true;
     }
 

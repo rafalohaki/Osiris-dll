@@ -137,11 +137,7 @@ static void STDCALL_CONV frameStageNotify(LINUX_ARGS(void* thisptr,) csgo::Frame
 
 static int STDCALL_CONV emitSound(LINUX_ARGS(void* thisptr,) void* filter, int entityIndex, int channel, const char* soundEntry, unsigned int soundEntryHash, const char* sample, float volume, int seed, int soundLevel, int flags, int pitch, const Vector& origin, const Vector& direction, void* utlVecOrigins, bool updatePositions, float soundtime, int speakerentity, void* soundParams) noexcept
 {
-    Sound::modulateSound(*globalContext->clientInterfaces, *memory, soundEntry, entityIndex, volume);
-    Misc::autoAccept(*interfaces, *memory, soundEntry);
-
-    volume = std::clamp(volume, 0.0f, 1.0f);
-    return hooks->sound.callOriginal<int, WIN32_LINUX(5, 6)>(filter, entityIndex, channel, soundEntry, soundEntryHash, sample, volume, seed, soundLevel, flags, pitch, std::cref(origin), std::cref(direction), utlVecOrigins, updatePositions, soundtime, speakerentity, soundParams);
+    return globalContext->emitSoundHook(filter, entityIndex, channel, soundEntry, soundEntryHash, sample, volume, seed, soundLevel, flags, pitch, origin, direction, utlVecOrigins, updatePositions, soundtime, speakerentity, soundParams);
 }
 
 static bool STDCALL_CONV shouldDrawFog(LINUX_ARGS(void* thisptr)) noexcept
@@ -243,7 +239,7 @@ static void STDCALL_CONV renderSmokeOverlay(LINUX_ARGS(void* thisptr,) bool upda
 static double STDCALL_CONV getArgAsNumber(LINUX_ARGS(void* thisptr,) void* params, int index) noexcept
 {
     const auto result = hooks->panoramaMarshallHelper.callOriginal<double, 5>(params, index);
-    inventory_changer::InventoryChanger::instance(*interfaces, *memory).getArgAsNumberHook(*memory, static_cast<int>(result), RETURN_ADDRESS());
+    inventory_changer::InventoryChanger::instance(*interfaces, *memory).getArgAsNumberHook(memory->inventoryChangerReturnAddresses, static_cast<int>(result), RETURN_ADDRESS());
     return result;
 }
 
@@ -252,21 +248,21 @@ static const char* STDCALL_CONV getArgAsString(LINUX_ARGS(void* thisptr,) void* 
     const auto result = hooks->panoramaMarshallHelper.callOriginal<const char*, 7>(params, index);
 
     if (result)
-        inventory_changer::InventoryChanger::instance(*interfaces, *memory).getArgAsStringHook(*memory, result, RETURN_ADDRESS(), params);
+        inventory_changer::InventoryChanger::instance(*interfaces, *memory).getArgAsStringHook(memory->inventoryChangerReturnAddresses, *memory, result, RETURN_ADDRESS(), params);
 
     return result;
 }
 
 static void STDCALL_CONV setResultInt(LINUX_ARGS(void* thisptr, ) void* params, int result) noexcept
 {
-    result = inventory_changer::InventoryChanger::instance(*interfaces, *memory).setResultIntHook(*memory, RETURN_ADDRESS(), params, result);
+    result = inventory_changer::InventoryChanger::instance(*interfaces, *memory).setResultIntHook(memory->inventoryChangerReturnAddresses, RETURN_ADDRESS(), params, result);
     hooks->panoramaMarshallHelper.callOriginal<void, WIN32_LINUX(14, 11)>(params, result);
 }
 
 static unsigned STDCALL_CONV getNumArgs(LINUX_ARGS(void* thisptr, ) void* params) noexcept
 {
     const auto result = hooks->panoramaMarshallHelper.callOriginal<unsigned, 1>(params);
-    inventory_changer::InventoryChanger::instance(*interfaces, *memory).getNumArgsHook(*memory, result, RETURN_ADDRESS(), params);
+    inventory_changer::InventoryChanger::instance(*interfaces, *memory).getNumArgsHook(memory->inventoryChangerReturnAddresses, result, RETURN_ADDRESS(), params);
     return result;
 }
 
@@ -309,7 +305,7 @@ Hooks::Hooks(HMODULE moduleHandle) noexcept : moduleHandle{ moduleHandle }
 
 #endif
 
-void Hooks::install(const Interfaces& interfaces, const Memory& memory) noexcept
+void Hooks::install(const ClientInterfaces& clientInterfaces, const Interfaces& interfaces, const Memory& memory) noexcept
 {
 #ifdef _WIN32
     originalPresent = **reinterpret_cast<decltype(originalPresent)**>(memory.present);
@@ -327,10 +323,10 @@ void Hooks::install(const Interfaces& interfaces, const Memory& memory) noexcept
 
 #endif
     
-    bspQuery.init(globalContext->engineInterfaces->engine->getBSPTreeQuery());
+    bspQuery.init(globalContext->engineInterfaces->getEngine().getBSPTreeQuery());
     bspQuery.hookAt(6, &listLeavesInBox);
 
-    client.init(globalContext->clientInterfaces->client);
+    client.init((void*)clientInterfaces.getClientAddress());
     client.hookAt(37, &frameStageNotify);
     client.hookAt(38, &dispatchUserMessage);
 
@@ -343,7 +339,7 @@ void Hooks::install(const Interfaces& interfaces, const Memory& memory) noexcept
     clientMode.hookAt(WIN32_LINUX(44, 45), &doPostScreenEffects);
     clientMode.hookAt(WIN32_LINUX(58, 61), &updateColorCorrectionWeights);
 
-    engine.init(globalContext->engineInterfaces->engine);
+    engine.init((void*)globalContext->engineInterfaces->getEngineAddress());
     engine.hookAt(82, &isPlayingDemo);
     engine.hookAt(101, &getScreenAspectRatio);
 #ifdef _WIN32
@@ -423,10 +419,10 @@ static DWORD WINAPI unload(HMODULE moduleHandle) noexcept
 
 #endif
 
-void Hooks::uninstall(const Interfaces& interfaces, const Memory& memory) noexcept
+void Hooks::uninstall(const ClientInterfaces& clientInterfaces, const Interfaces& interfaces, const Memory& memory) noexcept
 {
-    Misc::updateEventListeners(*globalContext->clientInterfaces, *globalContext->engineInterfaces, interfaces, memory, true);
-    Visuals::updateEventListeners(*globalContext->engineInterfaces, *globalContext->clientInterfaces, interfaces, memory, true);
+    Misc::updateEventListeners(*globalContext->engineInterfaces, true);
+    Visuals::updateEventListeners(*globalContext->engineInterfaces, true);
 
 #ifdef _WIN32
     if constexpr (std::is_same_v<HookType, MinHook>) {
@@ -481,7 +477,7 @@ void Hooks::callOriginalDrawModelExecute(void* ctx, void* state, const ModelRend
 #ifndef _WIN32
 
 Hooks::Hooks() noexcept
-    : sdlFunctions{ linux_platform::SharedObject{ linux_platform::DynamicLibraryWrapper{}, "libSDL2-2.0.so.0" } }
+    : sdlFunctions{ linux_platform::SharedObject{ linux_platform::DynamicLibraryWrapper{}, "libSDL2-2.0.so.0" }.getView() }
 {
     pollEvent = *reinterpret_cast<decltype(pollEvent)*>(sdlFunctions.pollEvent);
     *reinterpret_cast<decltype(::pollEvent)**>(sdlFunctions.pollEvent) = ::pollEvent;

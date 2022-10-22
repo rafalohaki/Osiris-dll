@@ -15,7 +15,15 @@
 #include "Platform/Linux/SharedObject.h"
 #endif
 
+#include "SDK/Client.h"
+#include "SDK/Engine.h"
+#include "SDK/EngineTrace.h"
+#include "SDK/EntityList.h"
+#include "SDK/GameEvent.h"
+#include "SDK/GameMovement.h"
+#include "SDK/ModelInfo.h"
 #include "SDK/Platform.h"
+#include "SDK/Prediction.h"
 
 #include "Platform/DynamicLibraryView.h"
 #include "Platform/RetSpoofInvoker.h"
@@ -23,25 +31,16 @@
 #include "RetSpoofGadgets.h"
 
 class BaseFileSystem;
-class Client;
 class Cvar;
-class Engine;
 class EngineSound;
-class EngineTrace;
-class EntityList;
-class GameEventManager;
-class GameMovement;
 class GameUI;
 class InputSystem;
 class Localize;
 class MaterialSystem;
-class ModelInfo;
 class ModelRender;
 class NetworkStringTableContainer;
 class PanoramaUIEngine;
 class PhysicsSurfaceProps;
-class Prediction;
-class RenderView;
 class Surface;
 class SoundEmitter;
 class StudioRender;
@@ -74,42 +73,95 @@ private:
 class ClientInterfaces {
 public:
     template <typename DynamicLibraryWrapper>
-    explicit ClientInterfaces(InterfaceFinder<DynamicLibraryWrapper> clientInterfaceFinder)
-        : client{ static_cast<Client*>(clientInterfaceFinder("VClient018")) },
-          entityList{ static_cast<EntityList*>(clientInterfaceFinder("VClientEntityList003")) },
-          gameMovement{ static_cast<GameMovement*>(clientInterfaceFinder("GameMovement001")) },
-          prediction{ static_cast<Prediction*>(clientInterfaceFinder("VClientPrediction001")) }
+    explicit ClientInterfaces(InterfaceFinder<DynamicLibraryWrapper> clientInterfaceFinder, RetSpoofInvoker retSpoofInvoker)
+        : retSpoofInvoker{ retSpoofInvoker },
+          client{ std::uintptr_t(clientInterfaceFinder("VClient018")) },
+          entityList{ std::uintptr_t(clientInterfaceFinder("VClientEntityList003")) },
+          gameMovement{ std::uintptr_t(clientInterfaceFinder("GameMovement001")) },
+          prediction{ std::uintptr_t(clientInterfaceFinder("VClientPrediction001")) }
     {
     }
 
-    Client* client;
-    EntityList* entityList;
-    GameMovement* gameMovement;
-    Prediction* prediction;
+    [[nodiscard]] auto getClient() const noexcept
+    {
+        return Client{ retSpoofInvoker, client };
+    }
+
+    [[nodiscard]] std::uintptr_t getClientAddress() const noexcept
+    {
+        return client;
+    }
+
+    [[nodiscard]] auto getEntityList() const noexcept
+    {
+        return EntityList{ retSpoofInvoker, entityList };
+    }
+
+    [[nodiscard]] auto getGameMovement() const noexcept
+    {
+        return GameMovement{ retSpoofInvoker, gameMovement };
+    }
+
+    [[nodiscard]] auto getPrediction() const noexcept
+    {
+        return Prediction{ retSpoofInvoker, prediction };
+    }
+
+private:
+    RetSpoofInvoker retSpoofInvoker;
+    std::uintptr_t client;
+    std::uintptr_t entityList;
+    std::uintptr_t gameMovement;
+    std::uintptr_t prediction;
 };
 
 class EngineInterfaces {
 public:
     template <typename DynamicLibraryWrapper>
-    explicit EngineInterfaces(InterfaceFinder<DynamicLibraryWrapper> engineInterfaceFinder)
-        : engine{ static_cast<Engine*>(engineInterfaceFinder("VEngineClient014")) },
-          engineTrace{ static_cast<EngineTrace*>(engineInterfaceFinder("EngineTraceClient004")) },
-          gameEventManager{ static_cast<GameEventManager*>(engineInterfaceFinder("GAMEEVENTSMANAGER002")) },
-          modelInfo{ static_cast<ModelInfo*>(engineInterfaceFinder("VModelInfoClient004")) },
+    explicit EngineInterfaces(InterfaceFinder<DynamicLibraryWrapper> engineInterfaceFinder, RetSpoofInvoker retSpoofInvoker)
+        : retSpoofInvoker{ retSpoofInvoker },
+          engine{ std::uintptr_t(engineInterfaceFinder("VEngineClient014")) },
+          engineTrace{ retSpoofInvoker, std::uintptr_t(engineInterfaceFinder("EngineTraceClient004")) },
+          gameEventManager{ std::uintptr_t(engineInterfaceFinder("GAMEEVENTSMANAGER002")) },
+          modelInfo{ std::uintptr_t(engineInterfaceFinder("VModelInfoClient004")) },
           modelRender{ static_cast<ModelRender*>(engineInterfaceFinder("VEngineModel016")) },
-          networkStringTableContainer{ static_cast<NetworkStringTableContainer*>(engineInterfaceFinder("VEngineClientStringTable001")) },
-          renderView{ static_cast<RenderView*>(engineInterfaceFinder("VEngineRenderView014")) },
           sound{ static_cast<EngineSound*>(engineInterfaceFinder("IEngineSoundClient003")) }
     {
     }
 
-    Engine* engine;
-    EngineTrace* engineTrace;
-    GameEventManager* gameEventManager;
-    ModelInfo* modelInfo;
+    [[nodiscard]] auto getEngine() const noexcept
+    {
+        return Engine{ retSpoofInvoker, engine };
+    }
+
+    [[nodiscard]] std::uintptr_t getEngineAddress() const noexcept
+    {
+        return engine;
+    }
+
+    [[nodiscard]] auto getGameEventManager() const noexcept
+    {
+        return GameEventManager{ retSpoofInvoker, gameEventManager };
+    }
+
+    [[nodiscard]] std::uintptr_t getGameEventManagerAddress() const noexcept
+    {
+        return gameEventManager;
+    }
+
+    [[nodiscard]] auto getModelInfo() const noexcept
+    {
+        return ModelInfo{ retSpoofInvoker, modelInfo };
+    }
+
+private:
+    RetSpoofInvoker retSpoofInvoker;
+    std::uintptr_t engine;
+    std::uintptr_t gameEventManager;
+    std::uintptr_t modelInfo;
+public:
+    EngineTrace engineTrace;
     ModelRender* modelRender;
-    NetworkStringTableContainer* networkStringTableContainer;
-    RenderView* renderView;
     EngineSound* sound;
 };
 

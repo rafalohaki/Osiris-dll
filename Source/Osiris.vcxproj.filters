@@ -364,9 +364,6 @@
     <ClInclude Include="Hacks\Chams.h">
       <Filter>Hacks</Filter>
     </ClInclude>
-    <ClInclude Include="SDK\RenderView.h">
-      <Filter>SDK</Filter>
-    </ClInclude>
     <ClInclude Include="Hacks\Aimbot.h">
       <Filter>Hacks</Filter>
     </ClInclude>
@@ -494,9 +491,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="SDK\WeaponSystem.h">
-      <Filter>SDK</Filter>
-    </ClInclude>
-    <ClInclude Include="SDK\NetworkStringTable.h">
       <Filter>SDK</Filter>
     </ClInclude>
     <ClInclude Include="Hooks\VmtSwap.h">
@@ -867,6 +861,9 @@
     </ClInclude>
     <ClInclude Include="Platform\DynamicLibraryView.h">
       <Filter>Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="SafeAddress.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

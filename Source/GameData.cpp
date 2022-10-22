@@ -59,7 +59,7 @@ static auto playerByHandleWritable(int handle) noexcept
     return it != playerData.end() ? &(*it) : nullptr;
 }
 
-static void updateNetLatency(Engine& engine) noexcept
+static void updateNetLatency(const Engine& engine) noexcept
 {
     if (const auto networkChannel = engine.getNetworkChannel())
         netOutgoingLatency = (std::max)(static_cast<int>(networkChannel->getLatency(0) * 1000.0f), 0);
@@ -82,7 +82,7 @@ void GameData::update(const ClientInterfaces& clientInterfaces, const EngineInte
         return;
     lastFrame = memory.globalVars->framecount;
 
-    updateNetLatency(*engineInterfaces.engine);
+    updateNetLatency(engineInterfaces.getEngine());
 
     Lock lock;
     observerData.clear();
@@ -91,7 +91,7 @@ void GameData::update(const ClientInterfaces& clientInterfaces, const EngineInte
     lootCrateData.clear();
     infernoData.clear();
 
-    localPlayerData.update(*engineInterfaces.engine);
+    localPlayerData.update(engineInterfaces.getEngine());
     bombData.update(memory);
 
     if (!localPlayer) {
@@ -100,13 +100,13 @@ void GameData::update(const ClientInterfaces& clientInterfaces, const EngineInte
         return;
     }
 
-    viewMatrix = engineInterfaces.engine->worldToScreenMatrix();
+    viewMatrix = engineInterfaces.getEngine().worldToScreenMatrix();
 
     const auto observerTarget = localPlayer->getObserverMode() == ObsMode::InEye ? localPlayer->getObserverTarget() : nullptr;
 
-    const auto highestEntityIndex = clientInterfaces.entityList->getHighestEntityIndex();
+    const auto highestEntityIndex = clientInterfaces.getEntityList().getHighestEntityIndex();
     for (int i = 1; i <= highestEntityIndex; ++i) {
-        const auto entity = clientInterfaces.entityList->getEntity(i);
+        const auto entity = clientInterfaces.getEntityList().getEntity(i);
         if (!entity)
             continue;
 
@@ -186,14 +186,14 @@ void GameData::update(const ClientInterfaces& clientInterfaces, const EngineInte
     std::sort(lootCrateData.begin(), lootCrateData.end());
 
     std::ranges::for_each(projectileData, [&clientInterfaces](auto& projectile) {
-        if (clientInterfaces.entityList->getEntityFromHandle(projectile.handle) == nullptr)
+        if (clientInterfaces.getEntityList().getEntityFromHandle(projectile.handle) == nullptr)
             projectile.exploded = true;
     });
 
-    std::erase_if(projectileData, [&memory, &clientInterfaces](const auto& projectile) { return clientInterfaces.entityList->getEntityFromHandle(projectile.handle) == nullptr
+    std::erase_if(projectileData, [&memory, &clientInterfaces](const auto& projectile) { return clientInterfaces.getEntityList().getEntityFromHandle(projectile.handle) == nullptr
         && (projectile.trajectory.size() < 1 || projectile.trajectory[projectile.trajectory.size() - 1].first + 60.0f < memory.globalVars->realtime); });
 
-    std::erase_if(playerData, [&clientInterfaces](const auto& player) { return clientInterfaces.entityList->getEntityFromHandle(player.handle) == nullptr; });
+    std::erase_if(playerData, [&clientInterfaces](const auto& player) { return clientInterfaces.getEntityList().getEntityFromHandle(player.handle) == nullptr; });
 
     if (shouldUpdatePlayerVisibility(memory))
         nextPlayerVisibilityUpdateTime = memory.globalVars->realtime + playerVisibilityUpdateDelay;
@@ -289,7 +289,7 @@ const std::vector<InfernoData>& GameData::infernos() noexcept
     return infernoData;
 }
 
-void LocalPlayerData::update(Engine& engine) noexcept
+void LocalPlayerData::update(const Engine& engine) noexcept
 {
     if (!localPlayer) {
         exists = false;
@@ -373,7 +373,7 @@ ProjectileData::ProjectileData(const ClientInterfaces& clientInterfaces, const M
         }
     }(projectile);
 
-    if (const auto thrower = clientInterfaces.entityList->getEntityFromHandle(projectile->thrower()); thrower && localPlayer) {
+    if (const auto thrower = clientInterfaces.getEntityList().getEntityFromHandle(projectile->thrower()); thrower && localPlayer) {
         if (thrower == localPlayer.get())
             thrownByLocalPlayer = true;
         else
@@ -393,8 +393,8 @@ void ProjectileData::update(const Memory& memory, Entity* projectile) noexcept
 
 PlayerData::PlayerData(const EngineInterfaces& engineInterfaces, const Interfaces& interfaces, const Memory& memory, Entity* entity) noexcept : BaseData{ entity }, handle{ entity->handle() }
 {
-    if (const auto steamID = entity->getSteamId(*engineInterfaces.engine)) {
-        const auto ctx = engineInterfaces.engine->getSteamAPIContext();
+    if (const auto steamID = entity->getSteamId(engineInterfaces.getEngine())) {
+        const auto ctx = engineInterfaces.getEngine().getSteamAPIContext();
         const auto avatar = ctx->steamFriends->getSmallFriendAvatar(steamID);
         constexpr auto rgbaDataSize = 4 * 32 * 32;
 
@@ -418,7 +418,7 @@ void PlayerData::update(const EngineInterfaces& engineInterfaces, const Interfac
     team = entity->getTeamNumber();
     static_cast<BaseData&>(*this) = { entity };
     origin = entity->getAbsOrigin();
-    inViewFrustum = !engineInterfaces.engine->cullBox(obbMins + origin, obbMaxs + origin);
+    inViewFrustum = !engineInterfaces.getEngine().cullBox(obbMins + origin, obbMaxs + origin);
     alive = entity->isAlive();
     lastContactTime = alive ? memory.globalVars->realtime : 0.0f;
 
@@ -457,7 +457,7 @@ void PlayerData::update(const EngineInterfaces& engineInterfaces, const Interfac
     if (!model)
         return;
 
-    const auto studioModel = engineInterfaces.modelInfo->getStudioModel(model);
+    const auto studioModel = engineInterfaces.getModelInfo().getStudioModel(model);
     if (!studioModel)
         return;
 

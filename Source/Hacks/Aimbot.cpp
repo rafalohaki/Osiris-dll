@@ -103,7 +103,7 @@ static bool canScan(const EngineInterfaces& engineInterfaces, const Interfaces& 
 
     while (damage >= 1.0f && hitsLeft) {
         Trace trace;
-        engineInterfaces.engineTrace->traceRay({ start, destination }, 0x4600400B, localPlayer.get(), trace);
+        engineInterfaces.engineTrace.traceRay({ start, destination }, 0x4600400B, localPlayer.get(), trace);
 
         if (!allowFriendlyFire && trace.entity && trace.entity->isPlayer() && !localPlayer->isOtherEnemy(memory, trace.entity))
             return false;
@@ -183,8 +183,8 @@ void Aimbot::run(const EngineInterfaces& engineInterfaces, const ClientInterface
 
         const auto aimPunch = activeWeapon->requiresRecoilControl() ? localPlayer->getAimPunch() : Vector{ };
 
-        for (int i = 1; i <= engineInterfaces.engine->getMaxClients(); i++) {
-            auto entity = clientInterfaces.entityList->getEntity(i);
+        for (int i = 1; i <= engineInterfaces.getEngine().getMaxClients(); i++) {
+            auto entity = clientInterfaces.getEntityList().getEntity(i);
             if (!entity || entity == localPlayer.get() || entity->isDormant() || !entity->isAlive()
                 || !entity->isOtherEnemy(memory, localPlayer.get()) && !config.aimbot[weaponIndex].friendlyFire || entity->gunGameImmunity())
                 continue;
@@ -200,7 +200,7 @@ void Aimbot::run(const EngineInterfaces& engineInterfaces, const ClientInterface
                 if (!config.aimbot[weaponIndex].ignoreSmoke && memory.lineGoesThroughSmoke(localPlayerEyePosition, bonePosition, 1))
                     continue;
 
-                if (!entity->isVisible(*engineInterfaces.engineTrace, memory, bonePosition) && (config.aimbot[weaponIndex].visibleOnly || !canScan(engineInterfaces, interfaces, memory, entity, bonePosition, activeWeapon->getWeaponData(), config.aimbot[weaponIndex].killshot ? entity->health() : config.aimbot[weaponIndex].minDamage, config.aimbot[weaponIndex].friendlyFire)))
+                if (!entity->isVisible(engineInterfaces.engineTrace, memory, bonePosition) && (config.aimbot[weaponIndex].visibleOnly || !canScan(engineInterfaces, interfaces, memory, entity, bonePosition, activeWeapon->getWeaponData(), config.aimbot[weaponIndex].killshot ? entity->health() : config.aimbot[weaponIndex].minDamage, config.aimbot[weaponIndex].friendlyFire)))
                     continue;
 
                 if (fov < bestFov) {
@@ -231,7 +231,7 @@ void Aimbot::run(const EngineInterfaces& engineInterfaces, const ClientInterface
             angle /= config.aimbot[weaponIndex].smooth;
             cmd->viewangles += angle;
             if (!config.aimbot[weaponIndex].silent)
-                engineInterfaces.engine->setViewAngles(cmd->viewangles);
+                engineInterfaces.getEngine().setViewAngles(cmd->viewangles);
 
             if (config.aimbot[weaponIndex].autoScope && activeWeapon->nextPrimaryAttack() <= memory.globalVars->serverTime() && activeWeapon->isSniperRifle() && !localPlayer->isScoped())
                 cmd->buttons |= UserCmd::IN_ATTACK2;

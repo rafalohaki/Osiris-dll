@@ -32,6 +32,7 @@ public:
     void drawModelExecuteHook(void* ctx, void* state, const ModelRenderInfo& info, matrix3x4* customBoneToWorld);
     bool svCheatsGetBoolHook(void* _this, std::uintptr_t returnAddress);
     void frameStageNotifyHook(csgo::FrameStage stage);
+    int emitSoundHook(void* filter, int entityIndex, int channel, const char* soundEntry, unsigned int soundEntryHash, const char* sample, float volume, int seed, int soundLevel, int flags, int pitch, const Vector& origin, const Vector& direction, void* utlVecOrigins, bool updatePositions, float soundtime, int speakerentity, void* soundParams);
     bool shouldDrawFogHook(std::uintptr_t returnAddress);
     bool shouldDrawViewModelHook();
     void lockCursorHook();
@@ -52,9 +53,10 @@ public:
 
     void viewModelSequenceNetvarHook(recvProxyData& data, void* outStruct, void* arg3);
 
+    void fireGameEventCallback(GameEvent* event);
+
     std::optional<EventListener> gameEventListener;
 
-    std::optional<ClientInterfaces> clientInterfaces; // TODO: make private
     std::optional<EngineInterfaces> engineInterfaces; // TODO: make private
 
 private:
@@ -69,6 +71,8 @@ private:
     State state = State::NotInitialized;
 
     std::optional<Config> config;
+    std::optional<ClientInterfaces> clientInterfaces;
+
 };
 
 inline std::optional<GlobalContext> globalContext;
