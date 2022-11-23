@@ -10,7 +10,6 @@
 #include "InventoryChanger/InventoryChanger.h"
 #include "Hacks/Misc.h"
 #include "Hacks/Visuals.h"
-#include "Interfaces.h"
 #include "Netvars.h"
 
 #include "SDK/Constants/ClassId.h"
@@ -19,21 +18,20 @@
 #include "SDK/Entity.h"
 #include "SDK/EntityList.h"
 #include "SDK/LocalPlayer.h"
-#include "SDK/Platform.h"
 #include "SDK/Recv.h"
 
 #include "GlobalContext.h"
 
 static void CDECL_CONV spottedHook(recvProxyData& data, void* outStruct, void* arg3) noexcept
 {
-    const auto entity = reinterpret_cast<Entity*>(outStruct);
+    const auto entity = Entity::from(retSpoofGadgets->client, static_cast<csgo::pod::Entity*>(outStruct));
 
     if (Misc::isRadarHackOn()) {
         data.value._int = 1;
 
         if (localPlayer) {
-            if (const auto index = localPlayer->index(); index > 0 && index <= 32)
-                entity->spottedByMask() |= 1 << (index - 1);
+            if (const auto index = localPlayer.get().getNetworkable().index(); index > 0 && index <= 32)
+                entity.spottedByMask() |= 1 << (index - 1);
         }
     }
 

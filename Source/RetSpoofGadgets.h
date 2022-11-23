@@ -1,14 +1,17 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 
 #include "Platform/RetSpoofInvoker.h"
 
-struct RetSpoofGadgets {
-    RetSpoofGadgets();
+namespace helpers { struct PatternFinder; }
 
-    RetSpoofInvoker jmpEbxInClient;
+struct RetSpoofGadgets {
+    RetSpoofGadgets(const helpers::PatternFinder& clientPatternFinder, const helpers::PatternFinder& enginePatternFinder);
+
+    RetSpoofInvoker client;
     RetSpoofInvoker engine;
 };
 
-inline RetSpoofGadgets retSpoofGadgets;
+inline std::optional<RetSpoofGadgets> retSpoofGadgets;

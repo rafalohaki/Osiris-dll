@@ -13,7 +13,6 @@
 #include "../InputUtil.h"
 #include "Glow.h"
 #include "../Helpers.h"
-#include "../Interfaces.h"
 #include "../Memory.h"
 #include <SDK/Constants/ClassId.h>
 #include "../SDK/ClientClass.h"
@@ -27,6 +26,8 @@
 #include "../SDK/UtlVector.h"
 #include "../SDK/Vector.h"
 #include "../imguiCustom.h"
+
+#include <Interfaces/ClientInterfaces.h>
 
 #if OSIRIS_GLOW()
 
@@ -47,7 +48,7 @@ static KeyBind glowHoldKey;
 
 static std::vector<std::pair<int, int>> customGlowEntities;
 
-void Glow::render(const EngineInterfaces& engineInterfaces, const ClientInterfaces& clientInterfaces, const Interfaces& interfaces, const Memory& memory) noexcept
+void Glow::render(const EngineInterfaces& engineInterfaces, const ClientInterfaces& clientInterfaces, const OtherInterfaces& interfaces, const Memory& memory) noexcept
 {
     if (!localPlayer)
         return;
@@ -65,11 +66,11 @@ void Glow::render(const EngineInterfaces& engineInterfaces, const ClientInterfac
 
     const auto highestEntityIndex = clientInterfaces.getEntityList().getHighestEntityIndex();
     for (int i = engineInterfaces.getEngine().getMaxClients() + 1; i <= highestEntityIndex; ++i) {
-        const auto entity = clientInterfaces.getEntityList().getEntity(i);
-        if (!entity || entity->isDormant())
+        const auto entity = Entity::from(retSpoofGadgets->client, clientInterfaces.getEntityList().getEntity(i));
+        if (entity.getPOD() == nullptr || entity.getNetworkable().isDormant())
             continue;
 
-        switch (entity->getClientClass()->classId) {
+        switch (entity.getNetworkable().getClientClass()->classId) {
         case ClassId::EconEntity:
         case ClassId::BaseCSGrenadeProjectile:
         case ClassId::BreachChargeProjectile:
@@ -81,8 +82,8 @@ void Glow::render(const EngineInterfaces& engineInterfaces, const ClientInterfac
         case ClassId::SnowballProjectile:
         case ClassId::Hostage:
         case ClassId::CSRagdoll:
-            if (!memory.glowObjectManager->hasGlowEffect(entity)) {
-                if (auto index{ memory.glowObjectManager->registerGlowObject(entity) }; index != -1)
+            if (!memory.glowObjectManager->hasGlowEffect(entity.getPOD())) {
+                if (auto index{ memory.glowObjectManager->registerGlowObject(entity.getPOD()) }; index != -1)
                     customGlowEntities.emplace_back(i, index);
             }
             break;
@@ -94,9 +95,9 @@ void Glow::render(const EngineInterfaces& engineInterfaces, const ClientInterfac
     for (int i = 0; i < memory.glowObjectManager->glowObjectDefinitions.size; i++) {
         GlowObjectDefinition& glowobject = memory.glowObjectManager->glowObjectDefinitions[i];
 
-        auto entity = glowobject.entity;
+        const auto entity = Entity::from(retSpoofGadgets->client, glowobject.entity);
 
-        if (glowobject.isUnused() || !entity || entity->isDormant())
+        if (glowobject.isUnused() || entity.getPOD() == nullptr || entity.getNetworkable().isDormant())
             continue;
 
         auto applyGlow = [&glowobject, &memory](const GlowItem& glow, int health = 0) noexcept
@@ -117,27 +118,27 @@ void Glow::render(const EngineInterfaces& engineInterfaces, const ClientInterfac
             }
         };
 
-        auto applyPlayerGlow = [applyGlow, &memory, &engineInterfaces](const std::string& name, Entity* entity) noexcept {
+        auto applyPlayerGlow = [applyGlow, &memory, &engineInterfaces](const std::string& name, const Entity& entity) noexcept {
             const auto& cfg = playerGlowConfig[name];
-            if (cfg.all.enabled)
-                applyGlow(cfg.all, entity->health());
-            else if (cfg.visible.enabled && entity->visibleTo(engineInterfaces, memory, localPlayer.get()))
-                applyGlow(cfg.visible, entity->health());
-            else if (cfg.occluded.enabled && !entity->visibleTo(engineInterfaces, memory, localPlayer.get()))
-                applyGlow(cfg.occluded, entity->health());
+            if (cfg.all.enabled) 
+                applyGlow(cfg.all, entity.health());
+            else if (cfg.visible.enabled && entity.visibleTo(engineInterfaces, memory, localPlayer.get()))
+                applyGlow(cfg.visible, entity.health());
+            else if (cfg.occluded.enabled && !entity.visibleTo(engineInterfaces, memory, localPlayer.get()))
+                applyGlow(cfg.occluded, entity.health());
         };
 
-        switch (entity->getClientClass()->classId) {
+        switch (entity.getNetworkable().getClientClass()->classId) {
         case ClassId::CSPlayer:
-            if (!entity->isAlive())
+            if (!entity.isAlive())
                 break;
-            if (auto activeWeapon{ entity->getActiveWeapon() }; activeWeapon && activeWeapon->getClientClass()->classId == ClassId::C4 && activeWeapon->c4StartedArming())
+            if (const auto activeWeapon = Entity::from(retSpoofGadgets->client, entity.getActiveWeapon()); activeWeapon.getPOD() != nullptr && activeWeapon.getNetworkable().getClientClass()->classId == ClassId::C4 && activeWeapon.c4StartedArming())
                 applyPlayerGlow("Planting", entity);
-            else if (entity->isDefusing())
+            else if (entity.isDefusing())
                 applyPlayerGlow("Defusing", entity);
-            else if (entity == localPlayer.get())
-                applyGlow(glow["Local Player"], entity->health());
-            else if (entity->isOtherEnemy(memory, localPlayer.get()))
+            else if (entity.getPOD() == localPlayer.get().getPOD())
+                applyGlow(glow["Local Player"], entity.health());
+            else if (entity.isOtherEnemy(memory, localPlayer.get()))
                 applyPlayerGlow("Enemies", entity);
             else
                 applyPlayerGlow("Allies", entity);
@@ -160,7 +161,7 @@ void Glow::render(const EngineInterfaces& engineInterfaces, const ClientInterfac
         case ClassId::Hostage: applyGlow(glow["Hostages"]); break;
         case ClassId::CSRagdoll: applyGlow(glow["Ragdolls"]); break;
         default:
-           if (entity->isWeapon()) {
+           if (entity.isWeapon()) {
                 applyGlow(glow["Weapons"]);
                 if (!glow["Weapons"].enabled) glowobject.renderWhenOccluded = false;
             }

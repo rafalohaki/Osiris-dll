@@ -3,11 +3,11 @@
 #include "UtlVector.h"
 #include "Vector.h"
 
-class Entity;
+namespace csgo::pod { struct Entity; }
 
 struct GlowObjectDefinition {
     int nextFreeSlot;
-    Entity* entity;
+    csgo::pod::Entity* entity;
 
     // TODO: try to declare those as std::array<float, 4> for easier color copying
     Vector glowColor;
@@ -34,7 +34,7 @@ struct GlowObjectDefinition {
 struct GlowObjectManager {
     UtlVector<GlowObjectDefinition> glowObjectDefinitions;
 
-    constexpr bool hasGlowEffect(Entity* entity) noexcept
+    constexpr bool hasGlowEffect(csgo::pod::Entity* entity) noexcept
     {
         for (int i = 0; i < glowObjectDefinitions.size; i++)
             if (!glowObjectDefinitions[i].isUnused() && glowObjectDefinitions[i].entity == entity)
@@ -43,7 +43,7 @@ struct GlowObjectManager {
         return false;
     }
 
-    constexpr int registerGlowObject(Entity* entity) noexcept
+    constexpr int registerGlowObject(csgo::pod::Entity* entity) noexcept
     {
         int index = firstFreeSlot;
         if (index != -1) {

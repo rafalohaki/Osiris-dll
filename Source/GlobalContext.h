@@ -2,13 +2,22 @@
 
 #include <cstdint>
 
-#ifdef _WIN32
+#include <Platform/IsPlatform.h>
+
+#if IS_WIN32()
+#include <d3d9.h>
 #include <Windows.h>
 #else
 #include <SDL2/SDL.h>
 #endif
 #include "Config.h"
 #include "EventListener.h"
+
+#include "Hacks/Aimbot.h"
+#include "Hacks/Visuals.h"
+#include "Interfaces/ClientInterfaces.h"
+#include "Interfaces/EngineInterfaces.h"
+#include "SDK/CSPlayerInventory.h"
 
 struct DemoPlaybackParameters;
 class matrix3x4;
@@ -26,6 +35,8 @@ namespace csgo
 
 class GlobalContext {
 public:
+    GlobalContext();
+
     bool createMoveHook(float inputSampleTime, UserCmd* cmd);
     void doPostScreenEffectsHook(void* param);
     float getViewModelFovHook();
@@ -42,10 +53,25 @@ public:
     void render2dEffectsPreHudHook(void* viewSetup);
     const DemoPlaybackParameters* getDemoPlaybackParametersHook(std::uintptr_t returnAddress);
     bool dispatchUserMessageHook(csgo::UserMessageType type, int passthroughFlags, int size, const void* data);
+    bool isPlayingDemoHook(std::uintptr_t returnAddress, std::uintptr_t frameAddress);
+    void updateColorCorrectionWeightsHook();
+    float getScreenAspectRatioHook(int width, int height);
+    void renderSmokeOverlayHook(bool update);
+    double getArgAsNumberHook(void* params, int index, std::uintptr_t returnAddress);
+    const char* getArgAsStringHook(void* params, int index, std::uintptr_t returnAddress);
+    void setResultIntHook(void* params, int result, std::uintptr_t returnAddress);
+    unsigned getNumArgsHook(void* params, std::uintptr_t returnAddress);
+    void updateInventoryEquippedStateHook(std::uintptr_t inventory, csgo::ItemId itemID, csgo::Team team, int slot, bool swap);
+    void soUpdatedHook(SOID owner, csgo::pod::SharedObject* object, int event);
+    int listLeavesInBoxHook(const Vector& mins, const Vector& maxs, unsigned short* list, int listMax, std::uintptr_t returnAddress, std::uintptr_t frameAddress);
 
-#ifdef _WIN32
+#if IS_WIN32()
+    void* allocKeyValuesMemoryHook(int size, std::uintptr_t returnAddress);
+
     LRESULT wndProcHook(HWND window, UINT msg, WPARAM wParam, LPARAM lParam);
     HRESULT presentHook(IDirect3DDevice9* device, const RECT* src, const RECT* dest, HWND windowOverride, const RGNDATA* dirtyRegion);
+    HRESULT resetHook(IDirect3DDevice9* device, D3DPRESENT_PARAMETERS* params);
+
 #else
     int pollEventHook(SDL_Event* event);
     void swapWindowHook(SDL_Window* window);
@@ -53,11 +79,23 @@ public:
 
     void viewModelSequenceNetvarHook(recvProxyData& data, void* outStruct, void* arg3);
 
-    void fireGameEventCallback(GameEvent* event);
+    void fireGameEventCallback(csgo::pod::GameEvent* eventPointer);
 
     std::optional<EventListener> gameEventListener;
 
-    std::optional<EngineInterfaces> engineInterfaces; // TODO: make private
+    std::optional<EngineInterfacesPODs> engineInterfacesPODs; // TODO: make private
+
+    std::optional<Visuals> visuals;
+
+    [[nodiscard]] EngineInterfaces getEngineInterfaces() const noexcept
+    {
+        return EngineInterfaces{ retSpoofGadgets->engine, *engineInterfacesPODs };
+    }
+
+    [[nodiscard]] OtherInterfaces getOtherInterfaces() const noexcept
+    {
+        return OtherInterfaces{ retSpoofGadgets->client, *interfaces };
+    }
 
 private:
     void renderFrame();
@@ -71,8 +109,9 @@ private:
     State state = State::NotInitialized;
 
     std::optional<Config> config;
-    std::optional<ClientInterfaces> clientInterfaces;
-
+    std::optional<ClientInterfacesPODs> clientInterfaces;
+    std::optional<const OtherInterfacesPODs> interfaces;
+    std::optional<Aimbot> aimbot;
 };
 
 inline std::optional<GlobalContext> globalContext;

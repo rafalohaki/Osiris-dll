@@ -4,7 +4,6 @@
 #include "Aimbot.h"
 #include "Backtrack.h"
 #include "../ConfigStructs.h"
-#include "../Interfaces.h"
 #include "../Memory.h"
 #include "../SDK/Cvar.h"
 #include "../SDK/ConVar.h"
@@ -16,6 +15,9 @@
 #include "../SDK/LocalPlayer.h"
 #include "../SDK/NetworkChannel.h"
 #include "../SDK/UserCmd.h"
+
+#include <Interfaces/ClientInterfaces.h>
+#include <Interfaces/OtherInterfaces.h>
 
 #if OSIRIS_BACKTRACK()
 
@@ -29,46 +31,46 @@ struct BacktrackConfig {
 static std::array<std::deque<Backtrack::Record>, 65> records;
 
 struct Cvars {
-    ConVar* updateRate;
-    ConVar* maxUpdateRate;
-    ConVar* interp;
-    ConVar* interpRatio;
-    ConVar* minInterpRatio;
-    ConVar* maxInterpRatio;
-    ConVar* maxUnlag;
+    ConVar updateRate;
+    ConVar maxUpdateRate;
+    ConVar interp;
+    ConVar interpRatio;
+    ConVar minInterpRatio;
+    ConVar maxInterpRatio;
+    ConVar maxUnlag;
 };
 
-static Cvars cvars;
+static std::optional<Cvars> cvars;
 
 static auto timeToTicks(const Memory& memory, float time) noexcept
 {
     return static_cast<int>(0.5f + time / memory.globalVars->intervalPerTick);
 }
 
-void Backtrack::update(const EngineInterfaces& engineInterfaces, const ClientInterfaces& clientInterfaces, const Interfaces& interfaces, const Memory& memory, csgo::FrameStage stage) noexcept
+void Backtrack::update(const EngineInterfaces& engineInterfaces, const ClientInterfaces& clientInterfaces, const OtherInterfaces& interfaces, const Memory& memory, csgo::FrameStage stage) noexcept
 {
     if (stage == csgo::FrameStage::RENDER_START) {
-        if (!backtrackConfig.enabled || !localPlayer || !localPlayer->isAlive()) {
+        if (!backtrackConfig.enabled || !localPlayer || !localPlayer.get().isAlive()) {
             for (auto& record : records)
                 record.clear();
             return;
         }
 
         for (int i = 1; i <= engineInterfaces.getEngine().getMaxClients(); i++) {
-            auto entity = clientInterfaces.getEntityList().getEntity(i);
-            if (!entity || entity == localPlayer.get() || entity->isDormant() || !entity->isAlive() || !entity->isOtherEnemy(memory, localPlayer.get())) {
+            const auto entity =  Entity::from(retSpoofGadgets->client, clientInterfaces.getEntityList().getEntity(i));
+            if (entity.getPOD() == nullptr || entity.getPOD() == localPlayer.get().getPOD() || entity.getNetworkable().isDormant() || !entity.isAlive() || !entity.isOtherEnemy(memory, localPlayer.get())) {
                 records[i].clear();
                 continue;
             }
 
-            if (!records[i].empty() && (records[i].front().simulationTime == entity->simulationTime()))
+            if (!records[i].empty() && (records[i].front().simulationTime == entity.simulationTime()))
                 continue;
 
             Record record{ };
-            record.origin = entity->getAbsOrigin();
-            record.simulationTime = entity->simulationTime();
+            record.origin = entity.getAbsOrigin();
+            record.simulationTime = entity.simulationTime();
 
-            entity->setupBones(memory, record.matrix, 256, 0x7FF00, memory.globalVars->currenttime);
+            entity.setupBones(record.matrix, 256, 0x7FF00, memory.globalVars->currenttime);
 
             records[i].push_front(record);
 
@@ -83,11 +85,11 @@ void Backtrack::update(const EngineInterfaces& engineInterfaces, const ClientInt
 
 static float getLerp() noexcept
 {
-    auto ratio = std::clamp(cvars.interpRatio->getFloat(), cvars.minInterpRatio->getFloat(), cvars.maxInterpRatio->getFloat());
-    return (std::max)(cvars.interp->getFloat(), (ratio / ((cvars.maxUpdateRate) ? cvars.maxUpdateRate->getFloat() : cvars.updateRate->getFloat())));
+    auto ratio = std::clamp(cvars->interpRatio.getFloat(), cvars->minInterpRatio.getFloat(), cvars->maxInterpRatio.getFloat());
+    return (std::max)(cvars->interp.getFloat(), (ratio / ((cvars->maxUpdateRate.getPOD() != nullptr) ? cvars->maxUpdateRate.getFloat() : cvars->updateRate.getFloat())));
 }
 
-void Backtrack::run(const ClientInterfaces& clientInterfaces, const EngineInterfaces& engineInterfaces, const Interfaces& interfaces, const Memory& memory, UserCmd* cmd) noexcept
+void Backtrack::run(const ClientInterfaces& clientInterfaces, const EngineInterfaces& engineInterfaces, const OtherInterfaces& interfaces, const Memory& memory, UserCmd* cmd) noexcept
 {
     if (!backtrackConfig.enabled)
         return;
@@ -98,36 +100,36 @@ void Backtrack::run(const ClientInterfaces& clientInterfaces, const EngineInterf
     if (!localPlayer)
         return;
 
-    auto localPlayerEyePosition = localPlayer->getEyePosition();
+    auto localPlayerEyePosition = localPlayer.get().getEyePosition();
 
     auto bestFov{ 255.f };
-    Entity * bestTarget{ };
+    csgo::pod::Entity* bestTarget{ };
     int bestTargetIndex{ };
     Vector bestTargetOrigin{ };
     int bestRecord{ };
 
-    const auto aimPunch = localPlayer->getAimPunch();
+    const auto aimPunch = localPlayer.get().getAimPunch();
 
     for (int i = 1; i <= engineInterfaces.getEngine().getMaxClients(); i++) {
-        auto entity = clientInterfaces.getEntityList().getEntity(i);
-        if (!entity || entity == localPlayer.get() || entity->isDormant() || !entity->isAlive()
-            || !entity->isOtherEnemy(memory, localPlayer.get()))
+        const auto entity = Entity::from(retSpoofGadgets->client, clientInterfaces.getEntityList().getEntity(i));
+        if (entity.getPOD() == nullptr || entity.getPOD() == localPlayer.get().getPOD() || entity.getNetworkable().isDormant() || !entity.isAlive()
+            || !entity.isOtherEnemy(memory, localPlayer.get()))
             continue;
 
-        const auto& origin = entity->getAbsOrigin();
+        const auto& origin = entity.getAbsOrigin();
 
         auto angle = Aimbot::calculateRelativeAngle(localPlayerEyePosition, origin, cmd->viewangles + (backtrackConfig.recoilBasedFov ? aimPunch : Vector{ }));
         auto fov = std::hypotf(angle.x, angle.y);
         if (fov < bestFov) {
             bestFov = fov;
-            bestTarget = entity;
+            bestTarget = entity.getPOD();
             bestTargetIndex = i;
             bestTargetOrigin = origin;
         }
     }
 
     if (bestTarget) {
-        if (records[bestTargetIndex].size() <= 3 || (!backtrackConfig.ignoreSmoke && memory.lineGoesThroughSmoke(localPlayer->getEyePosition(), bestTargetOrigin, 1)))
+        if (records[bestTargetIndex].size() <= 3 || (!backtrackConfig.ignoreSmoke && memory.lineGoesThroughSmoke(localPlayer.get().getEyePosition(), bestTargetOrigin, 1)))
             return;
 
         bestFov = 255.f;
@@ -148,7 +150,7 @@ void Backtrack::run(const ClientInterfaces& clientInterfaces, const EngineInterf
 
     if (bestRecord) {
         const auto& record = records[bestTargetIndex][bestRecord];
-        memory.setAbsOrigin(bestTarget, record.origin);
+        memory.setAbsOrigin(std::uintptr_t(bestTarget), record.origin);
         cmd->tickCount = timeToTicks(memory, record.simulationTime + getLerp());
     }
 }
@@ -166,19 +168,20 @@ bool Backtrack::valid(const Engine& engine, const Memory& memory, float simtime)
     if (!network)
         return false;
 
-    auto delta = std::clamp(network->getLatency(0) + network->getLatency(1) + getLerp(), 0.f, cvars.maxUnlag->getFloat()) - (memory.globalVars->serverTime() - simtime);
+    auto delta = std::clamp(NetworkChannel::from(retSpoofGadgets->client, network).getLatency(0) + NetworkChannel::from(retSpoofGadgets->client, network).getLatency(1) + getLerp(), 0.f, cvars->maxUnlag.getFloat()) - (memory.globalVars->serverTime() - simtime);
     return std::abs(delta) <= 0.2f;
 }
 
-void Backtrack::init(const Interfaces& interfaces) noexcept
+void Backtrack::init(const OtherInterfaces& interfaces) noexcept
 {
-    cvars.updateRate = interfaces.cvar->findVar("cl_updaterate");
-    cvars.maxUpdateRate = interfaces.cvar->findVar("sv_maxupdaterate");
-    cvars.interp = interfaces.cvar->findVar("cl_interp");
-    cvars.interpRatio = interfaces.cvar->findVar("cl_interp_ratio");
-    cvars.minInterpRatio = interfaces.cvar->findVar("sv_client_min_interp_ratio");
-    cvars.maxInterpRatio = interfaces.cvar->findVar("sv_client_max_interp_ratio");
-    cvars.maxUnlag = interfaces.cvar->findVar("sv_maxunlag");
+    cvars.emplace(Cvars{
+        .updateRate = ConVar::from(retSpoofGadgets->client, interfaces.getCvar().findVar("cl_updaterate")),
+        .maxUpdateRate = ConVar::from(retSpoofGadgets->client, interfaces.getCvar().findVar("sv_maxupdaterate")),
+        .interp = ConVar::from(retSpoofGadgets->client, interfaces.getCvar().findVar("cl_interp")),
+        .interpRatio = ConVar::from(retSpoofGadgets->client, interfaces.getCvar().findVar("cl_interp_ratio")),
+        .minInterpRatio = ConVar::from(retSpoofGadgets->client, interfaces.getCvar().findVar("sv_client_min_interp_ratio")),
+        .maxInterpRatio = ConVar::from(retSpoofGadgets->client, interfaces.getCvar().findVar("sv_client_max_interp_ratio")),
+        .maxUnlag = ConVar::from(retSpoofGadgets->client, interfaces.getCvar().findVar("sv_maxunlag")) });
 }
 
 static bool backtrackWindowOpen = false;

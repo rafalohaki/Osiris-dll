@@ -6,11 +6,13 @@
 #include <system_error>
 #include <tuple>
 
-#ifdef _WIN32
+#include <Platform/IsPlatform.h>
+
+#if IS_WIN32()
 #include <Windows.h>
 #include <shellapi.h>
 #include <ShlObj.h>
-#elif __linux__
+#elif IS_LINUX()
 #include <unistd.h>
 #endif
 
@@ -28,7 +30,7 @@
 #include "Hacks/Visuals.h"
 #include "Hacks/Misc.h"
 
-#ifdef _WIN32
+#if IS_WIN32()
 int CALLBACK fontCallback(const LOGFONTW* lpelfe, const TEXTMETRICW*, DWORD, LPARAM lParam)
 {
     const wchar_t* const fontName = reinterpret_cast<const ENUMLOGFONTEXW*>(lpelfe)->elfFullName;
@@ -64,7 +66,7 @@ int CALLBACK fontCallback(const LOGFONTW* lpelfe, const TEXTMETRICW*, DWORD, LPA
 [[nodiscard]] static std::filesystem::path buildConfigsFolderPath() noexcept
 {
     std::filesystem::path path;
-#ifdef _WIN32
+#if IS_WIN32()
     if (PWSTR pathToDocuments; SUCCEEDED(SHGetKnownFolderPath(FOLDERID_Documents, 0, nullptr, &pathToDocuments))) {
         path = pathToDocuments;
         CoTaskMemFree(pathToDocuments);
@@ -78,13 +80,13 @@ int CALLBACK fontCallback(const LOGFONTW* lpelfe, const TEXTMETRICW*, DWORD, LPA
     return path;
 }
 
-Config::Config(const Interfaces& interfaces, const Memory& memory) noexcept : path{ buildConfigsFolderPath() }
+Config::Config(Visuals& visuals, const OtherInterfaces& interfaces, const Memory& memory) noexcept : path{ buildConfigsFolderPath() }
 {
     listConfigs();
 
-    load(interfaces, memory, u8"default.json", false);
+    load(visuals, interfaces, memory, u8"default.json", false);
 
-#ifdef _WIN32
+#if IS_WIN32()
     LOGFONTW logfont;
     logfont.lfCharSet = ANSI_CHARSET;
     logfont.lfPitchAndFamily = DEFAULT_PITCH;
@@ -288,12 +290,12 @@ static void from_json(const json& j, Config::Style& s)
     }
 }
 
-void Config::load(const Interfaces& interfaces, const Memory& memory, size_t id, bool incremental) noexcept
+void Config::load(Visuals& visuals, const OtherInterfaces& interfaces, const Memory& memory, size_t id, bool incremental) noexcept
 {
-    load(interfaces, memory, configs[id].c_str(), incremental);
+    load(visuals, interfaces, memory, configs[id].c_str(), incremental);
 }
 
-void Config::load(const Interfaces& interfaces, const Memory& memory, const char8_t* name, bool incremental) noexcept
+void Config::load(Visuals& visuals, const OtherInterfaces& interfaces, const Memory& memory, const char8_t* name, bool incremental) noexcept
 {
     json j;
 
@@ -306,7 +308,7 @@ void Config::load(const Interfaces& interfaces, const Memory& memory, const char
     }
 
     if (!incremental)
-        reset(interfaces, memory);
+        reset(visuals, interfaces, memory);
 
     read(j, "Aimbot", aimbot);
     read(j, "Aimbot On key", aimbotOnKey);
@@ -330,7 +332,7 @@ void Config::load(const Interfaces& interfaces, const Memory& memory, const char
     AntiAim::fromJson(j["Anti aim"]);
     Backtrack::fromJson(j["Backtrack"]);
     Glow::fromJson(j["Glow"]);
-    Visuals::fromJson(j["Visuals"]);
+    visuals.fromJson(j["Visuals"]);
     fromJson(j["Inventory Changer"], inventory_changer::InventoryChanger::instance(interfaces, memory));
     Sound::fromJson(j["Sound"]);
     Misc::fromJson(j["Misc"]);
@@ -525,7 +527,7 @@ void removeEmptyObjects(json& j) noexcept
     }
 }
 
-void Config::save(const Interfaces& interfaces, const Memory& memory, size_t id) const noexcept
+void Config::save(Visuals& visuals, const OtherInterfaces& interfaces, const Memory& memory, size_t id) const noexcept
 {
     json j;
 
@@ -545,7 +547,7 @@ void Config::save(const Interfaces& interfaces, const Memory& memory, size_t id)
     to_json(j["Chams"]["Hold Key"], chamsHoldKey, {});
     j["ESP"] = streamProofESP;
     j["Sound"] = Sound::toJson();
-    j["Visuals"] = Visuals::toJson();
+    j["Visuals"] = visuals.toJson();
     j["Misc"] = Misc::toJson();
     j["Style"] = style;
     j["Inventory Changer"] = toJson(interfaces, memory, inventory_changer::InventoryChanger::instance(interfaces, memory));
@@ -557,11 +559,11 @@ void Config::save(const Interfaces& interfaces, const Memory& memory, size_t id)
         out << std::setw(2) << j;
 }
 
-void Config::add(const Interfaces& interfaces, const Memory& memory, const char8_t* name) noexcept
+void Config::add(Visuals& visuals, const OtherInterfaces& interfaces, const Memory& memory, const char8_t* name) noexcept
 {
     if (*name && std::ranges::find(configs, name) == configs.cend()) {
         configs.emplace_back(name);
-        save(interfaces, memory, configs.size() - 1);
+        save(visuals, interfaces, memory, configs.size() - 1);
     }
 }
 
@@ -579,7 +581,7 @@ void Config::rename(size_t item, std::u8string_view newName) noexcept
     configs[item] = newName;
 }
 
-void Config::reset(const Interfaces& interfaces, const Memory& memory) noexcept
+void Config::reset(Visuals& visuals, const OtherInterfaces& interfaces, const Memory& memory) noexcept
 {
     aimbot = { };
     triggerbot = { };
@@ -590,7 +592,7 @@ void Config::reset(const Interfaces& interfaces, const Memory& memory) noexcept
     AntiAim::resetConfig();
     Backtrack::resetConfig();
     Glow::resetConfig();
-    Visuals::resetConfig();
+    visuals.resetConfig();
     inventory_changer::InventoryChanger::instance(interfaces, memory).reset(interfaces, memory);
     Sound::resetConfig();
     Misc::resetConfig();
@@ -615,7 +617,7 @@ void Config::createConfigDir() const noexcept
 void Config::openConfigDir() const noexcept
 {
     createConfigDir();
-#ifdef _WIN32
+#if IS_WIN32()
     ShellExecuteW(nullptr, L"open", path.wstring().c_str(), nullptr, nullptr, SW_SHOWNORMAL);
 #else
     if (fork() == 0) {
@@ -630,7 +632,7 @@ void Config::scheduleFontLoad(const std::string& name) noexcept
     scheduledFonts.push_back(name);
 }
 
-#ifdef _WIN32
+#if IS_WIN32()
 static auto getFontData(const std::string& fontName) noexcept
 {
     HFONT font = CreateFontA(0, 0, 0, 0,
@@ -693,7 +695,7 @@ bool Config::loadScheduledFonts() noexcept
             continue;
         }
 
-#ifdef _WIN32
+#if IS_WIN32()
         const auto [fontData, fontDataSize] = getFontData(fontName);
         if (fontDataSize == GDI_ERROR)
             continue;

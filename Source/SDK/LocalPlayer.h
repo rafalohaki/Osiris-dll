@@ -2,11 +2,12 @@
 
 #include <cassert>
 
-class Entity;
+#include "Entity.h"
+#include <RetSpoofGadgets.h>
 
 class LocalPlayer {
 public:
-    void init(Entity** entity) noexcept
+    void init(csgo::pod::Entity** entity) noexcept
     {
         assert(!localEntity);
         localEntity = entity;
@@ -18,19 +19,14 @@ public:
         return *localEntity != nullptr;
     }
 
-    constexpr auto operator->() noexcept
+    [[nodiscard]] auto get() noexcept
     {
         assert(localEntity && *localEntity);
-        return *localEntity;
+        return Entity::from(retSpoofGadgets->client, *localEntity);
     }
 
-    constexpr auto get() noexcept
-    {
-        assert(localEntity && *localEntity);
-        return *localEntity;
-    }
 private:
-    Entity** localEntity = nullptr;
+    csgo::pod::Entity** localEntity = nullptr;
 };
 
 inline LocalPlayer localPlayer;
