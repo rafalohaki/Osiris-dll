@@ -1,14 +1,19 @@
 #pragma once
 
-#include <SDK/GameEvent.h>
+#include <CSGO/GameEvent.h>
 
-class EventListener : public GameEventListener {
+class DefaultEventListener : public csgo::GameEventListener {
 public:
-    explicit EventListener(GameEventManager gameEventManager);
+    void fireGameEvent(csgo::GameEventPOD* eventPointer) override;
+};
 
-    void fireGameEvent(csgo::pod::GameEvent* event) override;
+class EventListener : public csgo::GameEventListener {
+public:
+    explicit EventListener(csgo::GameEventManager gameEventManager);
+
+    void fireGameEvent(csgo::GameEventPOD* event) override;
     void remove();
 
 private:
-    GameEventManager gameEventManager;
+    csgo::GameEventManager gameEventManager;
 };

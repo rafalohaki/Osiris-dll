@@ -8,12 +8,12 @@
 #include "InventoryChanger/InventoryChanger.h"
 #include "Hacks/Visuals.h"
 #include "Memory.h"
-#include "SDK/GameEvent.h"
-#include "SDK/UtlVector.h"
+#include "CSGO/GameEvent.h"
+#include "CSGO/UtlVector.h"
 
 #include "GlobalContext.h"
 
-EventListener::EventListener(GameEventManager gameEventManager)
+EventListener::EventListener(csgo::GameEventManager gameEventManager)
     : gameEventManager{ gameEventManager }
 {
     // If you add here listeners which aren't used by client.dll (e.g., item_purchase, bullet_impact), the cheat will be detected by AntiDLL (community anticheat).
@@ -37,11 +37,6 @@ EventListener::EventListener(GameEventManager gameEventManager)
         std::swap(desc->listeners[0], desc->listeners[desc->listeners.size - 1]);
     else
         assert(false);
-}
-
-void EventListener::fireGameEvent(csgo::pod::GameEvent* event)
-{
-    globalContext->fireGameEventCallback(event);
 }
 
 void EventListener::remove()
