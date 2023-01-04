@@ -212,6 +212,7 @@
     <ClInclude Include="CSGO\Constants\DllNames.h" />
     <ClInclude Include="CSGO\Constants\EconItemFlags.h" />
     <ClInclude Include="CSGO\Constants\FrameStage.h" />
+    <ClInclude Include="CSGO\Constants\GameEventNames.h" />
     <ClInclude Include="CSGO\Constants\ItemId.h" />
     <ClInclude Include="CSGO\Constants\PaintkitConditionChances.h" />
     <ClInclude Include="CSGO\Constants\PaintkitWear.h" />
@@ -410,6 +411,7 @@
     <ClInclude Include="Utils\FlagsBuilder.h" />
     <ClInclude Include="Utils\ReturnAddress.h" />
     <ClInclude Include="Utils\SafeAddress.h" />
+    <ClInclude Include="Utils\SpanSlice.h" />
     <ClInclude Include="Utils\TypeHint.h" />
   </ItemGroup>
   <ItemGroup>
