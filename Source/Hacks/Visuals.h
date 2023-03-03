@@ -13,6 +13,8 @@
 #include <CSGO/Functions.h>
 #include <CSGO/Recv.h>
 #include <CSGO/ViewRenderBeams.h>
+#include <MemorySearch/BytePatternLiteral.h>
+#include <MemorySearch/PatternFinder.h>
 
 namespace csgo { enum class FrameStage; }
 class GameEvent;
@@ -21,23 +23,7 @@ class EngineInterfaces;
 
 class Visuals {
 public:
-    Visuals(const Memory& memory, OtherInterfaces interfaces, ClientInterfaces clientInterfaces, EngineInterfaces engineInterfaces, const helpers::PatternFinder& clientPatternFinder, const helpers::PatternFinder& enginePatternFinder)
-        : memory{ memory }, interfaces{ interfaces }, clientInterfaces{ clientInterfaces }, engineInterfaces{ engineInterfaces }, skyboxChanger{ createSkyboxChanger(interfaces.getCvar(), enginePatternFinder) }, postProcessingDisabler{ createPostProcessingDisabler(clientPatternFinder) }, scopeOverlayRemover{ createScopeOverlayRemover(clientPatternFinder) },
-#if IS_WIN32()
-        viewRenderBeams{ retSpoofGadgets->client, clientPatternFinder("\xB9????\x0F\x11\x44\x24?\xC7\x44\x24?????\xF3\x0F\x10\x84\x24").add(1).deref().get() },
-        maxFlashAlphaProxy{ retSpoofGadgets->client, clientPatternFinder("\x55\x8B\xEC\x8B\x4D\x0C\x8B\x45\x08\x81\xC1").get() }
-#elif IS_LINUX()
-        viewRenderBeams{ retSpoofGadgets->client, clientPatternFinder("\x4C\x89\xF6\x4C\x8B\x25????\x48\x8D\x05").add(6).relativeToAbsolute().deref<2>().get() }
-#endif
-    {
-#if IS_WIN32()
-        cameraThink = ReturnAddress{ clientPatternFinder("\x85\xC0\x75\x30\x38\x87").get() };
-#elif IS_LINUX()
-        cameraThink = ReturnAddress{ clientPatternFinder("\xFF\x90????\x85\xC0\x75\x64").add(6).get() };
-#endif
-        ResetConfigurator configurator;
-        configure(configurator);
-    }
+    Visuals(const Memory& memory, OtherInterfaces interfaces, ClientInterfaces clientInterfaces, EngineInterfaces engineInterfaces, const PatternFinder& clientPatternFinder, const PatternFinder& enginePatternFinder);
 
     bool isZoomOn() noexcept;
     bool isDeagleSpinnerOn() noexcept;
@@ -107,6 +93,7 @@ public:
         configurator("No shadows", noShadows).def(false);
         configurator("Wireframe smoke", wireframeSmoke).def(false);
         configurator("Zoom", zoom).def(false);
+        configurator("Skybox Changer", skyboxChanger);
     }
 
 private:

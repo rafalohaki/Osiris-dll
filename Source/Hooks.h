@@ -20,6 +20,25 @@ union SDL_Event;
 #include "Hooks/VmtSwap.h"
 #include "Memory.h"
 #include "InventoryChanger/InventoryChanger.h"
+#include "Hooks/ClientHooks.h"
+#include "Hooks/ClientStateHooks.h"
+#include "Hooks/ClientModeHooks.h"
+#include "Hooks/EngineHooks.h"
+#include "Hooks/PanoramaMarshallHelperHooks.h"
+#include "Hooks/ViewRenderHooks.h"
+#include "Hooks/CSPlayerInventoryHooks.h"
+#include "Hooks/InventoryManagerHooks.h"
+#include "Hooks/BspQueryHooks.h"
+#include "Hooks/EngineSoundHooks.h"
+#include "Hooks/SvCheatsHooks.h"
+#include "Hooks/ModelRenderHooks.h"
+#include "Hooks/SurfaceHooks.h"
+
+#if IS_WIN32()
+#include "Hooks/KeyValuesSystemHooks.h"
+#endif
+
+#include "HookType.h"
 
 namespace csgo
 {
@@ -36,13 +55,6 @@ class OtherInterfaces;
 class Glow;
 class Visuals;
 class Misc;
-
-#if IS_WIN32()
-// Easily switch hooking method for all hooks, choose between MinHook/VmtHook/VmtSwap
-using HookType = MinHook;
-#else
-using HookType = VmtSwap;
-#endif
 
 class Hooks {
 public:
@@ -62,27 +74,26 @@ public:
 #endif
 
     void install(csgo::ClientPOD* clientInterface, const EngineInterfaces& engineInterfaces, const OtherInterfaces& interfaces, const Memory& memory) noexcept;
-    void uninstall(Misc& misc, Glow& glow, const EngineInterfaces& engineInterfaces, const ClientInterfaces& clientInterfaces, const OtherInterfaces& interfaces, const Memory& memory, Visuals& visuals, inventory_changer::InventoryChanger& inventoryChanger) noexcept;
-    void callOriginalDrawModelExecute(void* ctx, void* state, const csgo::ModelRenderInfo& info, csgo::matrix3x4* customBoneToWorld) noexcept;
-
-    std::add_pointer_t<int FASTCALL_CONV(csgo::SoundInfo&)> originalDispatchSound;
-
-    HookType bspQuery;
-    HookType client;
-    HookType clientMode;
-    HookType engine;
-    HookType inventory;
-    HookType inventoryManager;
-    HookType modelRender;
-    HookType panoramaMarshallHelper;
-    HookType sound;
-    HookType surface;
-    HookType viewRender;
-    HookType svCheats;
+    void uninstall(Misc& misc, Glow& glow, const Memory& memory, Visuals& visuals, inventory_changer::InventoryChanger& inventoryChanger) noexcept;
 
 #if IS_WIN32()
-    HookType keyValuesSystem;
+    KeyValuesSystemHooks keyValuesSystemHooks;
 #endif
+
+    EngineHooks engineHooks;
+    ClientHooks clientHooks;
+    ClientModeHooks clientModeHooks;
+    ClientStateHooks clientStateHooks;
+    CSPlayerInventoryHooks playerInventoryHooks;
+    PanoramaMarshallHelperHooks panoramaMarshallHelperHooks;
+    ViewRenderHooks viewRenderHooks;
+    InventoryManagerHooks inventoryManagerHooks;
+    BspQueryHooks bspQueryHooks;
+    EngineSoundHooks engineSoundHooks;
+    SvCheatsHooks svCheatsHooks;
+    ModelRenderHooks modelRenderHooks;
+    SurfaceHooks surfaceHooks;
+
 private:
 #if IS_WIN32()
     HMODULE moduleHandle;

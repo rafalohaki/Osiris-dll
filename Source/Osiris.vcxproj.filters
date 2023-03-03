@@ -99,6 +99,9 @@
     <Filter Include="MemorySearch">
       <UniqueIdentifier>{a463f11e-5e7b-40b4-b955-c60208980d86}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Hacks\Chams">
+      <UniqueIdentifier>{4e0caedc-d0ab-48f2-8598-a22bbbc1bf6f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="GUI.cpp">
@@ -311,9 +314,6 @@
     <ClCompile Include="GlobalContext.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Helpers\PatternFinder.cpp">
-      <Filter>Helpers</Filter>
-    </ClCompile>
     <ClCompile Include="Endpoints.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -346,6 +346,18 @@
     </ClCompile>
     <ClCompile Include="RetSpoof\RetSpoofGadgets.cpp">
       <Filter>RetSpoof</Filter>
+    </ClCompile>
+    <ClCompile Include="Helpers\PatternNotFoundHandler.cpp">
+      <Filter>Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="Helpers\KeyValuesFactory.cpp">
+      <Filter>Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="InventoryChanger\EconItemFunctions.cpp">
+      <Filter>InventoryChanger</Filter>
+    </ClCompile>
+    <ClCompile Include="InventoryChanger\EconItemViewFunctions.cpp">
+      <Filter>InventoryChanger</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -684,9 +696,6 @@
     </ClInclude>
     <ClInclude Include="Platform\Windows\DynamicLibrarySection.h">
       <Filter>Platform\Windows</Filter>
-    </ClInclude>
-    <ClInclude Include="Helpers\PatternFinder.h">
-      <Filter>Helpers</Filter>
     </ClInclude>
     <ClInclude Include="Interfaces\InterfaceFinder.h">
       <Filter>Interfaces</Filter>
@@ -1065,6 +1074,93 @@
     </ClInclude>
     <ClInclude Include="RetSpoof\RetSpoofInvokerWindows.h">
       <Filter>RetSpoof</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils\HexChars.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="MemorySearch\BytePatternConverter.h">
+      <Filter>MemorySearch</Filter>
+    </ClInclude>
+    <ClInclude Include="MemorySearch\BytePatternStorage.h">
+      <Filter>MemorySearch</Filter>
+    </ClInclude>
+    <ClInclude Include="MemorySearch\BytePatternLiteral.h">
+      <Filter>MemorySearch</Filter>
+    </ClInclude>
+    <ClInclude Include="Hooks\EngineHooks.h">
+      <Filter>Hooks</Filter>
+    </ClInclude>
+    <ClInclude Include="Hooks\ClientModeHooks.h">
+      <Filter>Hooks</Filter>
+    </ClInclude>
+    <ClInclude Include="Hooks\PanoramaMarshallHelperHooks.h">
+      <Filter>Hooks</Filter>
+    </ClInclude>
+    <ClInclude Include="Hooks\ClientHooks.h">
+      <Filter>Hooks</Filter>
+    </ClInclude>
+    <ClInclude Include="Hooks\ViewRenderHooks.h">
+      <Filter>Hooks</Filter>
+    </ClInclude>
+    <ClInclude Include="Hooks\CSPlayerInventoryHooks.h">
+      <Filter>Hooks</Filter>
+    </ClInclude>
+    <ClInclude Include="Hooks\InventoryManagerHooks.h">
+      <Filter>Hooks</Filter>
+    </ClInclude>
+    <ClInclude Include="Hooks\BspQueryHooks.h">
+      <Filter>Hooks</Filter>
+    </ClInclude>
+    <ClInclude Include="Hooks\EngineSoundHooks.h">
+      <Filter>Hooks</Filter>
+    </ClInclude>
+    <ClInclude Include="Hooks\SvCheatsHooks.h">
+      <Filter>Hooks</Filter>
+    </ClInclude>
+    <ClInclude Include="Hooks\ModelRenderHooks.h">
+      <Filter>Hooks</Filter>
+    </ClInclude>
+    <ClInclude Include="Hooks\SurfaceHooks.h">
+      <Filter>Hooks</Filter>
+    </ClInclude>
+    <ClInclude Include="Hooks\KeyValuesSystemHooks.h">
+      <Filter>Hooks</Filter>
+    </ClInclude>
+    <ClInclude Include="Helpers\PatternNotFoundHandler.h">
+      <Filter>Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="Platform\DynamicLibrary.h">
+      <Filter>Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="Platform\DynamicLibraryWrapper.h">
+      <Filter>Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="HookType.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CSGO\UtlRbTree.h">
+      <Filter>CSGO</Filter>
+    </ClInclude>
+    <ClInclude Include="CSGO\SplitScreen.h">
+      <Filter>CSGO</Filter>
+    </ClInclude>
+    <ClInclude Include="Hooks\ClientStateHooks.h">
+      <Filter>Hooks</Filter>
+    </ClInclude>
+    <ClInclude Include="Helpers\KeyValuesFactory.h">
+      <Filter>Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="CSGO\Helpers\KeyValuesFunctions.h">
+      <Filter>CSGO\Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="Hacks\Chams\ChamsMaterialKeyValuesFactory.h">
+      <Filter>Hacks\Chams</Filter>
+    </ClInclude>
+    <ClInclude Include="Hacks\Chams\ChamsMaterial.h">
+      <Filter>Hacks\Chams</Filter>
+    </ClInclude>
+    <ClInclude Include="Hacks\Chams\ChamsMaterialFactory.h">
+      <Filter>Hacks\Chams</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

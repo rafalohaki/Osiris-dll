@@ -708,6 +708,43 @@ namespace ImGui
 namespace inventory_changer
 {
 
+[[nodiscard]] InventoryChangerReturnAddresses createInventoryChangerReturnAddresses(const PatternFinder& clientPatternFinder)
+{
+    return InventoryChangerReturnAddresses{
+#if IS_WIN32()
+        .setStickerToolSlotGetArgAsNumber = clientPatternFinder("FF D2 DD 5C 24 10 F2 0F 2C 7C 24"_pat, OffsetHint{ 6120862 }).add(2).asReturnAddress(),
+        .wearItemStickerGetArgAsString = clientPatternFinder("DD 5C 24 18 F2 0F 2C 7C 24 ? 85 FF"_pat, OffsetHint{ 6095215 }).add(-80).asReturnAddress(),
+        .setNameToolStringGetArgAsString = clientPatternFinder("8B F8 C6 45 08 ? 33 C0"_pat, OffsetHint{ 6121111 }).asReturnAddress(),
+        .clearCustomNameGetArgAsString = clientPatternFinder("FF 50 1C 8B F0 85 F6 74 21"_pat, OffsetHint{ 6121269 }).add(3).asReturnAddress(),
+        .deleteItemGetArgAsString = clientPatternFinder("85 C0 74 22 51"_pat, OffsetHint{ 6122298 }).asReturnAddress(),
+        .setStatTrakSwapToolItemsGetArgAsString = clientPatternFinder("85 C0 74 7E 8B C8 E8 ? ? ? ? 8B 37"_pat, OffsetHint{ 6120623 }).asReturnAddress(),
+        .acknowledgeNewItemByItemIDGetArgAsString = clientPatternFinder("85 C0 74 33 8B C8 E8 ? ? ? ? B9"_pat, OffsetHint{ 6092121 }).asReturnAddress(),
+        .setItemAttributeValueAsyncGetArgAsString = clientPatternFinder("8B D8 83 C4 08 85 DB 0F 84 ? ? ? ? 8B 16 8B CE 57"_pat, OffsetHint{ 6098822 }).add(-22).asReturnAddress(),
+        .setMyPredictionUsingItemIdGetNumArgs = clientPatternFinder("8B F0 89 74 24 2C 83 FE 01"_pat, OffsetHint{ 6702914 }).asReturnAddress(),
+        .getMyPredictionTeamIDGetArgAsString = clientPatternFinder("85 C0 0F 84 ? ? ? ? 57 8B C8 E8 ? ? ? ? BF ? ? ? ? 89 45 E8"_pat, OffsetHint{ 6699829 }).add(-20).asReturnAddress(),
+        .setInventorySortAndFiltersGetArgAsString = clientPatternFinder("80 7D FF ? 8B F8 74 27"_pat, OffsetHint{ 6088445 }).asReturnAddress(),
+        .getInventoryCountSetResultInt = clientPatternFinder("B9 ? ? ? ? E8 ? ? ? ? B9 ? ? ? ? E8 ? ? ? ? C2 08"_pat, OffsetHint{ 6092048 }).add(-10).asReturnAddress(),
+        .performItemCasketTransactionGetArgAsString = clientPatternFinder("85 C0 0F 84 ? ? ? ? 8B C8 E8 ? ? ? ? 52 50 E8 ? ? ? ? 83 C4 08 89 44 24 0C 85 C0 0F 84 ? ? ? ? F2 0F 2C 44 24"_pat, OffsetHint{ 6098213 }).asReturnAddress(),
+        .useToolGetArgAsString = clientPatternFinder("85 C0 0F 84 ? ? ? ? 8B C8 E8 ? ? ? ? 8B 37"_pat, OffsetHint{ 6118723 }).asReturnAddress()
+#elif IS_LINUX()
+        .setStickerToolSlotGetArgAsNumber = clientPatternFinder("F2 44 0F 2C E8 45 85 ED"_pat, OffsetHint{ 11247132 }).asReturnAddress(),
+        .wearItemStickerGetArgAsString = clientPatternFinder("49 8B 47 18 BA"_pat, OffsetHint{ 11225783 }).add(-131).asReturnAddress(),
+        .setNameToolStringGetArgAsString = clientPatternFinder("BA ? ? ? ? 4C 89 F6 48 89 C7 49 89 C4"_pat, OffsetHint{ 11252637 }).asReturnAddress(),
+        .clearCustomNameGetArgAsString = clientPatternFinder("48 85 C0 74 E5 48 89 C7 E8 ? ? ? ? 49 89 C4"_pat, OffsetHint{ 11247366 }).asReturnAddress(),
+        .deleteItemGetArgAsString = clientPatternFinder("48 85 C0 74 DE 48 89 C7 E8 ? ? ? ? 48 89 C3 E8 ? ? ? ? 48 89 DE"_pat, OffsetHint{ 11248886 }).asReturnAddress(),
+        .setStatTrakSwapToolItemsGetArgAsString = clientPatternFinder("74 84 4C 89 EE 4C 89 F7 E8 ? ? ? ? 48 85 C0"_pat, OffsetHint{ 11246916 }).add(-86).asReturnAddress(),
+        .acknowledgeNewItemByItemIDGetArgAsString = clientPatternFinder("48 85 C0 74 DE 48 89 C7 E8 ? ? ? ? 4C 89 EF 48 89 C6 E8 ? ? ? ? 4C 89 E6 48 89 DF 0F B6 D0"_pat, OffsetHint{ 11221963 }).asReturnAddress(),
+        .setItemAttributeValueAsyncGetArgAsString = clientPatternFinder("FF 50 38 48 85 C0 74 C2"_pat, OffsetHint{ 11228494 }).add(3).asReturnAddress(),
+        .setMyPredictionUsingItemIdGetNumArgs = clientPatternFinder("83 F8 01 89 85 ? ? ? ? 7E 1A"_pat, OffsetHint{ 11613975 }).asReturnAddress(),
+        .getMyPredictionTeamIDGetArgAsString = clientPatternFinder("48 85 C0 48 89 C7 74 C2 E8 ? ? ? ? 41 BF"_pat, OffsetHint{ 11606770 }).add(-20).asReturnAddress(),
+        .setInventorySortAndFiltersGetArgAsString = clientPatternFinder("49 89 C5 E9 ? ? ? ? 0F 1F 44 00 00 BA"_pat, OffsetHint{ 11312157 }).asReturnAddress(),
+        .getInventoryCountSetResultInt = clientPatternFinder("48 8B 08 48 89 DE 48 89 C7 41 8B 96 38 02"_pat, OffsetHint{ 11404345 }).add(19).asReturnAddress(),
+        .performItemCasketTransactionGetArgAsString = clientPatternFinder("48 85 C0 0F 84 ? ? ? ? 48 89 C7 E8 ? ? ? ? F2 0F 10 85"_pat, OffsetHint{ 11300702 }).asReturnAddress(),
+        .useToolGetArgAsString = clientPatternFinder("48 85 C0 74 DA 48 89 C7 E8 ? ? ? ? BA"_pat, OffsetHint{ 11246382 }).asReturnAddress()
+#endif
+    };
+}
+
 struct NameComparator {
     NameComparator(const game_items::Storage& gameItemStorage, const WeaponNames& weaponNames)
         : gameItemStorage{ gameItemStorage }, weaponNames{ weaponNames } {}
@@ -1128,7 +1165,7 @@ void InventoryChanger::run(const Memory& memory, csgo::FrameStage stage) noexcep
     backend.run(gameInventory, std::chrono::milliseconds{ 300 });
 }
 
-InventoryChanger createInventoryChanger(const EngineInterfaces& engineInterfaces, const ClientInterfaces& clientInterfaces, const OtherInterfaces& interfaces, const Memory& memory, const helpers::PatternFinder& clientPatternFinder, Helpers::RandomGenerator& randomGenerator)
+InventoryChanger createInventoryChanger(const EngineInterfaces& engineInterfaces, const ClientInterfaces& clientInterfaces, const OtherInterfaces& interfaces, const Memory& memory, const PatternFinder& clientPatternFinder, Helpers::RandomGenerator& randomGenerator)
 {
     auto itemSchema = csgo::ItemSchema::from(retSpoofGadgets->client, memory.itemSystem().getItemSchema());
     game_integration::Items items{ itemSchema, interfaces.getLocalize() };
@@ -1238,11 +1275,11 @@ void InventoryChanger::getArgAsStringHook(const Memory& memory, const char* stri
 {
     if (returnAddress == returnAddresses.useToolGetArgAsString) {
         const auto toolItemID = stringToUint64(string);
-        const auto destItemIdString = hooks->panoramaMarshallHelper.callOriginal<const char*, 7>(params, 1);
+        const auto destItemIdString = hooks->panoramaMarshallHelperHooks.getOriginalGetArgAsString()(memory.panoramaMarshallHelper, params, 1);
         if (destItemIdString)
             getRequestBuilder().useToolOn(ItemId{ toolItemID }, ItemId{ stringToUint64(destItemIdString) });
     } else if (returnAddress == returnAddresses.wearItemStickerGetArgAsString) {
-        const auto slot = (std::uint8_t)hooks->panoramaMarshallHelper.callOriginal<double, 5>(params, 1);
+        const auto slot = (std::uint8_t)hooks->panoramaMarshallHelperHooks.getOriginalGetArgAsNumber()(memory.panoramaMarshallHelper, params, 1);
         getRequestBuilder().wearStickerOf(ItemId{ stringToUint64(string) }, slot);
     } else if (returnAddress == returnAddresses.setNameToolStringGetArgAsString) {
         requestBuilderParams.nameTag = string;
@@ -1255,16 +1292,16 @@ void InventoryChanger::getArgAsStringHook(const Memory& memory, const char* stri
         acknowledgeItem(memory, stringToUint64(string));
     } else if (returnAddress == returnAddresses.setStatTrakSwapToolItemsGetArgAsString) {
         const auto swapItem1 = ItemId{ stringToUint64(string) };
-        const auto swapItem2String = hooks->panoramaMarshallHelper.callOriginal<const char*, 7>(params, 1);
+        const auto swapItem2String = hooks->panoramaMarshallHelperHooks.getOriginalGetArgAsString()(memory.panoramaMarshallHelper, params, 1);
         if (swapItem2String) {
             requestBuilderParams.statTrakSwapItemID1 = swapItem1;
             requestBuilderParams.statTrakSwapItemID2 = ItemId{ stringToUint64(swapItem2String) };
         }
     } else if (returnAddress == returnAddresses.setItemAttributeValueAsyncGetArgAsString) {
         if (const auto itOptional = backend.itemFromID(ItemId{ stringToUint64(string) }); itOptional.has_value() && (*itOptional)->gameItem().isTournamentCoin()) {
-            const auto attribute = hooks->panoramaMarshallHelper.callOriginal<const char*, 7>(params, 1);
+            const auto attribute = hooks->panoramaMarshallHelperHooks.getOriginalGetArgAsString()(memory.panoramaMarshallHelper, params, 1);
             if (attribute && std::strcmp(attribute, "sticker slot 0 id") == 0) {
-                const auto graffitiID = (int)hooks->panoramaMarshallHelper.callOriginal<double, 5>(params, 2);
+                const auto graffitiID = (int)hooks->panoramaMarshallHelperHooks.getOriginalGetArgAsNumber()(memory.panoramaMarshallHelper, params, 2);
                 backend.getItemModificationHandler().selectTeamGraffiti(*itOptional, static_cast<std::uint16_t>(graffitiID));
             }
         }
@@ -1273,14 +1310,14 @@ void InventoryChanger::getArgAsStringHook(const Memory& memory, const char* stri
         if (tournament == csgo::Tournament{})
             return;
 
-        const auto groupId = (std::uint16_t)hooks->panoramaMarshallHelper.callOriginal<double, 5>(params, 1);
-        const auto pickInGroupIndex = (std::uint8_t)hooks->panoramaMarshallHelper.callOriginal<double, 5>(params, 2);
-        csgo::PanoramaMarshallHelper::from(retSpoofGadgets->client, memory.panoramaMarshallHelper).setResult(params, static_cast<int>(backend.getPickEm().getPickedTeam({ tournament, groupId, pickInGroupIndex })));
+        const auto groupId = (std::uint16_t)hooks->panoramaMarshallHelperHooks.getOriginalGetArgAsNumber()(memory.panoramaMarshallHelper, params, 1);
+        const auto pickInGroupIndex = (std::uint8_t)hooks->panoramaMarshallHelperHooks.getOriginalGetArgAsNumber()(memory.panoramaMarshallHelper, params, 2);
+        hooks->panoramaMarshallHelperHooks.getOriginalSetResultInt()(memory.panoramaMarshallHelper, params, static_cast<int>(backend.getPickEm().getPickedTeam({ tournament, groupId, pickInGroupIndex })));
     } else if (returnAddress == returnAddresses.setInventorySortAndFiltersGetArgAsString) {
         panoramaCodeInXrayScanner = (std::strcmp(string, "xraymachine") == 0);
     } else if (returnAddress == returnAddresses.performItemCasketTransactionGetArgAsString) {
-        const auto operation = (int)hooks->panoramaMarshallHelper.callOriginal<double, 5>(params, 0);
-        const auto storageUnitItemIdString = hooks->panoramaMarshallHelper.callOriginal<const char*, 7>(params, 1);
+        const auto operation = (int)hooks->panoramaMarshallHelperHooks.getOriginalGetArgAsNumber()(memory.panoramaMarshallHelper, params, 0);
+        const auto storageUnitItemIdString = hooks->panoramaMarshallHelperHooks.getOriginalGetArgAsString()(memory.panoramaMarshallHelper, params, 1);
 
         if (operation == 1) {
             getRequestBuilder().addToStorageUnit(ItemId{ stringToUint64(string) }, ItemId{ stringToUint64(storageUnitItemIdString) });
@@ -1290,7 +1327,7 @@ void InventoryChanger::getArgAsStringHook(const Memory& memory, const char* stri
     }
 }
 
-void InventoryChanger::getNumArgsHook(unsigned numberOfArgs, ReturnAddress returnAddress, void* params)
+void InventoryChanger::getNumArgsHook(csgo::PanoramaMarshallHelperPOD* panoramaMarshallHelper, unsigned numberOfArgs, ReturnAddress returnAddress, void* params)
 {
     if (returnAddress != returnAddresses.setMyPredictionUsingItemIdGetNumArgs)
         return;
@@ -1298,7 +1335,7 @@ void InventoryChanger::getNumArgsHook(unsigned numberOfArgs, ReturnAddress retur
     if (numberOfArgs <= 1 || (numberOfArgs - 1) % 3 != 0)
         return;
 
-    const char* tournamentStr = hooks->panoramaMarshallHelper.callOriginal<const char*, 7>(params, 0);
+    const char* tournamentStr = hooks->panoramaMarshallHelperHooks.getOriginalGetArgAsString()(panoramaMarshallHelper, params, 0);
     if (!tournamentStr)
         return;
 
@@ -1307,9 +1344,9 @@ void InventoryChanger::getNumArgsHook(unsigned numberOfArgs, ReturnAddress retur
         return;
 
     for (unsigned i = 1; i < numberOfArgs; i += 3) {
-        const auto groupId = (std::uint16_t)hooks->panoramaMarshallHelper.callOriginal<double, 5>(params, i);
-        const auto pickInGroupIndex = (std::uint8_t)hooks->panoramaMarshallHelper.callOriginal<double, 5>(params, i + 1);
-        const char* stickerItemID = hooks->panoramaMarshallHelper.callOriginal<const char*, 7>(params, i + 2);
+        const auto groupId = (std::uint16_t)hooks->panoramaMarshallHelperHooks.getOriginalGetArgAsNumber()(panoramaMarshallHelper, params, i);
+        const auto pickInGroupIndex = (std::uint8_t)hooks->panoramaMarshallHelperHooks.getOriginalGetArgAsNumber()(panoramaMarshallHelper, params, i + 1);
+        const char* stickerItemID = hooks->panoramaMarshallHelperHooks.getOriginalGetArgAsString()(panoramaMarshallHelper, params, i + 2);
 
         if (!stickerItemID)
             continue;

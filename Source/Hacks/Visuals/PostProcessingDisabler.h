@@ -1,6 +1,7 @@
 #pragma once
 
-#include <Helpers/PatternFinder.h>
+#include <MemorySearch/PatternFinder.h>
+#include <MemorySearch/BytePatternLiteral.h>
 #include <Platform/Macros/IsPlatform.h>
 #include <CSGO/Constants/FrameStage.h>
 
@@ -32,12 +33,3 @@ public:
 private:
     bool* disablePostProcessing;
 };
-
-[[nodiscard]] inline PostProcessingDisabler createPostProcessingDisabler(const helpers::PatternFinder& clientPatternFinder)
-{
-#if IS_WIN32()
-    return PostProcessingDisabler{ clientPatternFinder("\x83\xEC\x4C\x80\x3D").add(5).deref().as<bool*>() };
-#elif IS_LINUX()
-    return PostProcessingDisabler{ clientPatternFinder("\x80\x3D?????\x89\xB5").add(2).relativeToAbsolute().as<bool*>() };
-#endif
-}
