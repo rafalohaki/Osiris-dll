@@ -7,7 +7,7 @@
 #if IS_WIN32()
 #include <d3d9.h>
 #include <Windows.h>
-#else
+#elif IS_LINUX()
 #include <SDL2/SDL.h>
 #endif
 #include "Config.h"
@@ -23,6 +23,8 @@
 #include "Utils/ReturnAddress.h"
 #include "InventoryChanger/InventoryChanger.h"
 #include "Hacks/Features.h"
+#include "Hooks.h"
+#include "MemoryAllocation/FixedAllocator.h"
 
 namespace csgo
 {
@@ -31,7 +33,7 @@ namespace csgo
 
     struct ConVarPOD;
     struct DemoPlaybackParameters;
-    class matrix3x4;
+    struct matrix3x4;
     struct ModelRenderInfo;
     struct recvProxyData;
     struct SoundInfo;
@@ -39,25 +41,30 @@ namespace csgo
     struct ViewSetup;
 }
 
+enum class GlobalContextState {
+    NotInitialized,
+    Initializing,
+    Initialized
+};
+
 class GlobalContext {
 public:
+#if IS_WIN32() || IS_WIN64()
+    GlobalContext(HMODULE moduleHandle);
+
+    HMODULE moduleHandle;
+    std::optional<WindowProcedureHook> windowProcedureHook;
+#elif IS_LINUX()
     GlobalContext();
 
-#if IS_WIN32()
-    LRESULT wndProcHook(HWND window, UINT msg, WPARAM wParam, LPARAM lParam);
-    HRESULT presentHook(IDirect3DDevice9* device, const RECT* src, const RECT* dest, HWND windowOverride, const RGNDATA* dirtyRegion);
-    HRESULT resetHook(IDirect3DDevice9* device, D3DPRESENT_PARAMETERS* params);
+    std::add_pointer_t<int(SDL_Event*)> pollEvent;
 
-#else
     int pollEventHook(SDL_Event* event);
     void swapWindowHook(SDL_Window* window);
 #endif
 
-    void viewModelSequenceNetvarHook(csgo::recvProxyData* data, void* outStruct, void* arg3);
-    void spottedHook(csgo::recvProxyData* data, void* outStruct, void* arg3);
-
-    void fireGameEventCallback(csgo::GameEventPOD* eventPointer);
-
+    FixedAllocator<10'000> fixedAllocator;
+    std::optional<Hooks> hooks;
     std::optional<EventListener> gameEventListener;
     std::optional<EngineInterfacesPODs> engineInterfacesPODs;
     std::optional<Features> features;
@@ -72,15 +79,10 @@ public:
         return OtherInterfaces{ retSpoofGadgets->client, *interfaces };
     }
 
+    void enable();
     void renderFrame();
 
-    enum class State {
-        NotInitialized,
-        Initializing,
-        Initialized
-    };
-
-    State state = State::NotInitialized;
+    GlobalContextState state = GlobalContextState::NotInitialized;
 
     std::optional<Config> config;
     std::optional<ClientInterfacesPODs> clientInterfaces;
@@ -88,6 +90,5 @@ public:
     std::optional<Helpers::RandomGenerator> randomGenerator;
     std::optional<const Memory> memory;
 
-private:
     void initialize();
 };

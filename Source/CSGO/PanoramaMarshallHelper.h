@@ -8,8 +8,7 @@ namespace csgo
 
 struct PanoramaMarshallHelperPOD;
 
-class PanoramaMarshallHelper : public VirtualCallableFromPOD<PanoramaMarshallHelper, PanoramaMarshallHelperPOD> {
-public:
+struct PanoramaMarshallHelper : GameClass<PanoramaMarshallHelper, PanoramaMarshallHelperPOD> {
     VIRTUAL_METHOD(void, setResult, WIN32_LINUX(14, 11), (void* params, int result), (params, result))
 };
 

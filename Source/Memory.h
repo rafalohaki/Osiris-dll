@@ -5,8 +5,10 @@
 #include <optional>
 #include <type_traits>
 
+#include "CSGO/Constants/DllNames.h"
 #include "CSGO/Functions.h"
 #include "CSGO/ItemSchema.h"
+#include "CSGO/LocalPlayer.h"
 #include "CSGO/MoveHelper.h"
 #include "CSGO/SoundInfo.h"
 #include "CSGO/SplitScreen.h"
@@ -19,8 +21,12 @@
 #include "MemorySearch/PatternFinder.h"
 #include "Utils/TypeHint.h"
 
+#include "Platform/DynamicLibrary.h"
 #include "Platform/Macros/CallingConventions.h"
 #include "RetSpoof/FunctionInvoker.h"
+
+#include "BytePatterns/ClientPatternFinder.h"
+#include "BytePatterns/EnginePatternFinder.h"
 
 class KeyValues;
 
@@ -28,21 +34,21 @@ namespace csgo
 {
 
 struct ClientMode;
-class ClientSharedObjectCache;
-class CSPlayerInventory;
-class EconItem;
-class EconItemAttributeDefinition;
-class Entity;
-class GameEventDescriptor;
-class GameEventManager;
-class Input;
-class MoveData;
+struct ClientSharedObjectCache;
+struct CSPlayerInventory;
+struct EconItem;
+struct EconItemAttributeDefinition;
+struct Entity;
+struct GameEventDescriptor;
+struct GameEventManager;
+struct Input;
+struct MoveData;
 struct PlantedC4POD;
-class PlayerResource;
+struct PlayerResource;
 template <typename Key, typename Value>
 struct UtlMap;
 template <typename T>
-class UtlVector;
+struct UtlVector;
 
 struct ActiveChannels;
 struct Channel;
@@ -55,23 +61,19 @@ struct UiComponentInventoryPOD;
 struct ClientPOD;
 struct PanoramaMarshallHelperPOD;
 struct KeyValuesSystemPOD;
+struct ItemSystemPOD;
+struct MemAllocPOD;
+struct KeyValuesPOD;
+struct ViewRender;
+struct HudPOD;
 
-}
-
-namespace csgo { struct ViewRender; }
-
-namespace csgo
-{
-    struct ItemSystemPOD;
-    struct MemAllocPOD;
-    struct KeyValuesPOD;
 }
 
 class Memory {
 public:
-    Memory(const PatternFinder& clientPatternFinder, const PatternFinder& enginePatternFinder, csgo::ClientPOD* clientInterface, const RetSpoofGadgets& retSpoofGadgets) noexcept;
+    Memory(const ClientPatternFinder& clientPatternFinder, const EnginePatternFinder& enginePatternFinder, csgo::ClientPOD* clientInterface, const RetSpoofGadgets& retSpoofGadgets) noexcept;
 
-#if IS_WIN32()
+#if IS_WIN32() || IS_WIN64()
     std::uintptr_t present;
     std::uintptr_t reset;
 #endif
@@ -86,17 +88,17 @@ public:
     csgo::UtlMap<short, csgo::PanoramaEventRegistration>* registeredPanoramaEvents;
 
     FunctionInvoker<csgo::LineGoesThroughSmoke> lineGoesThroughSmoke;
-    bool(THISCALL_CONV* isOtherEnemy)(std::uintptr_t, std::uintptr_t);
-    std::uintptr_t hud;
-    int*(THISCALL_CONV* findHudElement)(std::uintptr_t, const char*);
-    int(THISCALL_CONV* clearHudWeapon)(int*, int);
-    void(THISCALL_CONV* setAbsOrigin)(std::uintptr_t, const csgo::Vector&);
+    csgo::IsOtherEnemy isOtherEnemy;
+    csgo::HudPOD* hud;
+    csgo::FindHudElement findHudElement;
+    csgo::ClearHudWeapon clearHudWeapon;
+    csgo::SetAbsOrigin setAbsOrigin;
     std::uintptr_t traceToExit;
     csgo::ViewRender* viewRender;
     std::uintptr_t drawScreenEffectMaterial;
-    std::add_pointer_t<void CDECL_CONV(const char* msg, ...)> debugMsg;
-    std::add_pointer_t<void CDECL_CONV(const std::array<std::uint8_t, 4>& color, const char* msg, ...)> conColorMsg;
-    int(THISCALL_CONV* equipWearable)(csgo::EntityPOD* wearable, csgo::EntityPOD* player);
+    csgo::DebugMsg debugMsg;
+    csgo::ConColorMsg conColorMsg;
+    csgo::EquipWearable equipWearable;
     int* predictionRandomSeed;
     csgo::MoveData* moveData;
     csgo::WeaponSystem weaponSystem;
@@ -104,7 +106,7 @@ public:
     csgo::ActiveChannels* activeChannels;
     csgo::Channel* channels;
     csgo::PlayerResource** playerResource;
-    const wchar_t*(THISCALL_CONV* getDecoratedPlayerName)(csgo::PlayerResource* pr, int index, wchar_t* buffer, int buffsize, int flags);
+    csgo::GetDecoratedPlayerName getDecoratedPlayerName;
     csgo::EntityPOD** gameRules;
     csgo::InventoryManager inventoryManager;
     csgo::PanoramaMarshallHelperPOD* panoramaMarshallHelper;
@@ -128,7 +130,7 @@ public:
         return csgo::MoveHelper::from(retSpoofGadgets->client, moveHelperPtr);
     }
 
-#if IS_WIN32()
+#if IS_WIN32() || IS_WIN64()
     csgo::KeyValuesSystemPOD* keyValuesSystem;
     ReturnAddress keyValuesAllocEngine;
     ReturnAddress keyValuesAllocClient;
@@ -138,7 +140,73 @@ public:
 
 private:
     FunctionInvoker<csgo::MakePanoramaSymbol> makePanoramaSymbolFn;
-    std::add_pointer_t<csgo::ItemSystemPOD* CDECL_CONV()> itemSystemFn;
+    csgo::GetItemSystem itemSystemFn;
 
     csgo::MoveHelperPOD* moveHelperPtr;
 };
+
+inline Memory::Memory(const ClientPatternFinder& clientPatternFinder, const EnginePatternFinder& enginePatternFinder, csgo::ClientPOD* clientInterface, const RetSpoofGadgets& retSpoofGadgets) noexcept
+    : soundMessages{ enginePatternFinder.soundMessages() },
+    splitScreen{ enginePatternFinder.splitScreen() },
+    plantedC4s{ clientPatternFinder.plantedC4s() },
+    registeredPanoramaEvents{ clientPatternFinder.registeredPanoramaEvents() },
+    lineGoesThroughSmoke{ retSpoofGadgets.client, clientPatternFinder.lineGoesThroughSmoke() },
+    isOtherEnemy{ clientPatternFinder.isOtherEnemy() },
+    hud{ clientPatternFinder.hud() },
+    findHudElement{ clientPatternFinder.findHudElement() },
+    clearHudWeapon{ clientPatternFinder.clearHudWeapon() },
+    setAbsOrigin{ clientPatternFinder.setAbsOrigin() },
+    traceToExit{ clientPatternFinder.traceToExit() },
+    viewRender{ clientPatternFinder.viewRender() },
+    drawScreenEffectMaterial{ clientPatternFinder.drawScreenEffectMaterial() },
+    equipWearable{ clientPatternFinder.equipWearable() },
+    predictionRandomSeed{ clientPatternFinder.predictionRandomSeed() },
+    moveData{ clientPatternFinder.moveData() },
+    weaponSystem{ csgo::WeaponSystem::from(retSpoofGadgets.client, clientPatternFinder.weaponSystem()) },
+    getEventDescriptor{ enginePatternFinder.getEventDescriptor() },
+    activeChannels{ enginePatternFinder.activeChannels() },
+    channels{ enginePatternFinder.channels() },
+    playerResource{ clientPatternFinder.playerResource() },
+    getDecoratedPlayerName{ clientPatternFinder.getDecoratedPlayerName() },
+    gameRules{ clientPatternFinder.gameRules() },
+    inventoryManager{ csgo::InventoryManager::from(retSpoofGadgets.client, clientPatternFinder.inventoryManager()) },
+    panoramaMarshallHelper{ clientPatternFinder.panoramaMarshallHelper() },
+    findOrCreateEconItemViewForItemID{ retSpoofGadgets.client, clientPatternFinder.findOrCreateEconItemViewForItemID() },
+    createBaseTypeCache{ clientPatternFinder.createBaseTypeCache() },
+    makePanoramaSymbolFn{ retSpoofGadgets.client, clientPatternFinder.makePanoramaSymbol() },
+    itemSystemFn{ clientPatternFinder.getItemSystem() },
+    moveHelperPtr{ clientPatternFinder.moveHelper() }
+{
+    const DynamicLibrary tier0{ csgo::TIER0_DLL };
+    debugMsg = tier0.getFunctionAddress("Msg").template as<decltype(debugMsg)>();
+
+#if IS_WIN32() || IS_WIN64()
+    const DynamicLibrary gameOverlayRenderer{ "gameoverlayrenderer.dll" };
+
+    PatternNotFoundHandler patternNotFoundHandler;
+    present = PatternFinder{ gameOverlayRenderer.getCodeSection().raw(), patternNotFoundHandler}("FF 15 ? ? ? ? 8B F0 85 FF"_pat).add(2).get();
+    reset = PatternFinder{ gameOverlayRenderer.getCodeSection().raw(), patternNotFoundHandler }("C7 45 ? ? ? ? ? FF 15 ? ? ? ? 8B D8"_pat).add(9).get();
+
+    clientMode = **reinterpret_cast<csgo::ClientMode***>((*reinterpret_cast<uintptr_t**>(clientInterface))[10] + 5);
+    input = *reinterpret_cast<csgo::Input**>((*reinterpret_cast<uintptr_t**>(clientInterface))[16] + 1);
+    globalVars = **reinterpret_cast<csgo::GlobalVars***>((*reinterpret_cast<uintptr_t**>(clientInterface))[11] + 10);
+
+    conColorMsg = tier0.getFunctionAddress("?ConColorMsg@@YAXABVColor@@PBDZZ").template as<decltype(conColorMsg)>();
+    memAlloc = tier0.getFunctionAddress("g_pMemAlloc").deref().template as<csgo::MemAllocPOD*>();
+
+    localPlayer.init(clientPatternFinder.localPlayer());
+
+    keyValuesSystem = reinterpret_cast<csgo::KeyValuesSystemPOD * (STDCALL_CONV*)()>(GetProcAddress(GetModuleHandleW(L"vstdlib"), "KeyValuesSystem"))();
+    keyValuesAllocEngine = enginePatternFinder.keyValuesAlloc();
+    keyValuesAllocClient = clientPatternFinder.keyValuesAlloc();
+    shouldDrawFogReturnAddress = clientPatternFinder.shouldDrawFog();
+#elif IS_LINUX()
+    conColorMsg = tier0.getFunctionAddress("_Z11ConColorMsgRK5ColorPKcz").template as<decltype(conColorMsg)>();
+
+    globalVars = SafeAddress{ (*reinterpret_cast<std::uintptr_t**>(clientInterface))[11] + 16 }.abs().deref().as<csgo::GlobalVars*>();
+    clientMode = SafeAddress{ (*reinterpret_cast<uintptr_t**>(clientInterface))[10] }.add(12).abs().add(4).abs().deref().as<decltype(clientMode)>();
+    input = SafeAddress{ (*reinterpret_cast<uintptr_t**>(clientInterface))[16] }.add(3).abs().deref().as<csgo::Input*>();
+
+    localPlayer.init(clientPatternFinder.localPlayer());
+#endif
+}

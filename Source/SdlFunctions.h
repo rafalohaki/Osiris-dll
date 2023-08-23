@@ -2,15 +2,13 @@
 
 #include <cstdint>
 
-#include "Platform/Linux/DynamicLibraryWrapper.h"
-#include "Platform/Linux/DynamicLibraryView.h"
-
+#include "Platform/DynamicLibrary.h"
 #include "Utils/SafeAddress.h"
 
 struct SdlFunctions {
-    SdlFunctions(linux_platform::DynamicLibraryView<linux_platform::DynamicLibraryWrapper> libSDL)
-        : pollEvent{ SafeAddress{ std::uintptr_t(libSDL.getFunctionAddress("SDL_PollEvent")) }.add(2).relativeToAbsolute().get() },
-          swapWindow{ SafeAddress{ std::uintptr_t(libSDL.getFunctionAddress("SDL_GL_SwapWindow")) }.add(2).relativeToAbsolute().get() }
+    SdlFunctions(DynamicLibrary libSDL)
+        : pollEvent{ libSDL.getFunctionAddress("SDL_PollEvent").add(2).abs().get() },
+          swapWindow{ libSDL.getFunctionAddress("SDL_GL_SwapWindow").add(2).abs().get() }
     {
     }
 

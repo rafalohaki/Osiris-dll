@@ -1,13 +1,12 @@
 #pragma once
 
-#include "Pad.h"
+#include <Utils/Pad.h>
 #include "Vector.h"
 
 namespace csgo
 {
 
-class Input {
-public:
+struct Input {
     PAD(WIN32_LINUX(12, 16));
     bool isTrackIRAvailable;
     bool isMouseInitialized;

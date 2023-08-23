@@ -2,14 +2,14 @@
 
 #include <functional>
 
-#include "Pad.h"
+#include <Utils/Pad.h>
 #include "Vector.h"
 #include "VirtualMethod.h"
 
 namespace csgo
 {
 
-class Entity;
+struct Entity;
 
 struct BeamInfo {
     int	type;
@@ -53,8 +53,7 @@ struct Beam {
 
 struct ViewRenderBeamsPOD;
 
-class ViewRenderBeams : public VirtualCallableFromPOD<ViewRenderBeams, ViewRenderBeamsPOD> {
-public:
+struct ViewRenderBeams : GameClass<ViewRenderBeams, ViewRenderBeamsPOD> {
     VIRTUAL_METHOD(Beam*, createBeamPoints, WIN32_LINUX(12, 9), (BeamInfo& beamInfo), (&beamInfo))
 };
 

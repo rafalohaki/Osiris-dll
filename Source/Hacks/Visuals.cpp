@@ -40,9 +40,7 @@
 #include <Config/ResetConfigurator.h>
 #include <Config/SaveConfigurator.h>
 
-struct BulletTracers : ColorToggle {
-    BulletTracers() : ColorToggle{ 0.0f, 0.75f, 1.0f, 1.0f } {}
-};
+#include <BytePatterns/ClientPatternFinder.h>
 
 struct VisualsConfig {
     KeyBindToggle zoomKey;
@@ -62,14 +60,8 @@ struct VisualsConfig {
     float hitEffectTime{ 0.6f };
     int hitMarker{ 0 };
     float hitMarkerTime{ 0.6f };
-    BulletTracers bulletTracers;
     ColorToggle molotovHull{ 1.0f, 0.27f, 0.0f, 0.3f };
 } visualsConfig;
-
-static void from_json(const json& j, BulletTracers& o)
-{
-    from_json(j, static_cast<ColorToggle&>(o));
-}
 
 static void from_json(const json& j, VisualsConfig& v)
 {
@@ -90,13 +82,7 @@ static void from_json(const json& j, VisualsConfig& v)
     read(j, "Hit effect time", v.hitEffectTime);
     read(j, "Hit marker", v.hitMarker);
     read(j, "Hit marker time", v.hitMarkerTime);
-    read<value_t::object>(j, "Bullet Tracers", v.bulletTracers);
     read<value_t::object>(j, "Molotov Hull", v.molotovHull);
-}
-
-static void to_json(json& j, const BulletTracers& o, const BulletTracers& dummy = {})
-{
-    to_json(j, static_cast<const ColorToggle&>(o), dummy);
 }
 
 static void to_json(json& j, VisualsConfig& o)
@@ -120,59 +106,23 @@ static void to_json(json& j, VisualsConfig& o)
     WRITE("Hit effect time", hitEffectTime);
     WRITE("Hit marker", hitMarker);
     WRITE("Hit marker time", hitMarkerTime);
-    WRITE("Bullet Tracers", bulletTracers);
     WRITE("Molotov Hull", molotovHull);
 }
 
-[[nodiscard]] PostProcessingDisabler createPostProcessingDisabler(const PatternFinder& clientPatternFinder)
-{
+Visuals::Visuals(const Memory& memory, OtherInterfaces interfaces, ClientInterfaces clientInterfaces, EngineInterfaces engineInterfaces, const ClientPatternFinder& clientPatternFinder, const EnginePatternFinder& enginePatternFinder)
+    : memory{ memory },
+    interfaces{ interfaces },
+    clientInterfaces{ clientInterfaces },
+    engineInterfaces{ engineInterfaces },
+    skyboxChanger{ interfaces.getCvar(), FunctionInvoker<csgo::R_LoadNamedSkys>{ retSpoofGadgets->engine, enginePatternFinder.loadNamedSkys() } },
+    postProcessingDisabler{ clientPatternFinder.disablePostProcessing() },
+    scopeOverlayRemover{ clientPatternFinder.scopeDust(), clientPatternFinder.scopeArc(), clientPatternFinder.vignette() },
+    bulletTracers{ csgo::ViewRenderBeams::from(retSpoofGadgets->client, clientPatternFinder.viewRenderBeams()), clientInterfaces.getEntityList(), engineInterfaces.getEngine(), memory.globalVars },
+    cameraThink{ clientPatternFinder.cameraThink() }
 #if IS_WIN32()
-    return PostProcessingDisabler{ clientPatternFinder("83 EC 4C 80 3D"_pat).add(5).deref().as<bool*>() };
-#elif IS_LINUX()
-    return PostProcessingDisabler{ clientPatternFinder("0F B6 05 ? ? ? ? 84 C0 0F 85 ? ? ? ? 85 D2"_pat).add(3).relativeToAbsolute().as<bool*>() };
-#endif
-}
-
-[[nodiscard]] ScopeOverlayRemover createScopeOverlayRemover(const PatternFinder& clientPatternFinder)
-{
-#if IS_WIN32()
-    return ScopeOverlayRemover{
-        clientPatternFinder("FF 50 3C 8B 4C 24 20"_pat).add(3).asReturnAddress(),
-        clientPatternFinder("8B 0D ? ? ? ? FF B7 ? ? ? ? 8B 01 FF 90 ? ? ? ? 8B 7C 24 1C"_pat).asReturnAddress(),
-        clientPatternFinder("0F 11 05 ? ? ? ? F3 0F 7E 87"_pat).add(3).deref().add(4).as<float*>()
-};
-#elif IS_LINUX()
-    return ScopeOverlayRemover{
-        clientPatternFinder("41 FF 51 70 43 8D 14 3E"_pat).add(4).asReturnAddress(),
-        clientPatternFinder("49 8B 3C 24 8B B3 ? ? ? ? 48 8B 07 FF 90 ? ? ? ? 49 8B 3C 24 66 0F EF E4"_pat).asReturnAddress(),
-        clientPatternFinder("F3 0F 10 05 ? ? ? ? FF 50 20 48 8B BB ? ? ? ? 48 85 FF 74 17"_pat).add(4).relativeToAbsolute().add(4).as<float*>()
-    };
-#endif
-}
-
-[[nodiscard]] SkyboxChanger createSkyboxChanger(csgo::Cvar cvar, const PatternFinder& enginePatternFinder)
-{
-#if IS_WIN32()
-    return SkyboxChanger{ cvar, FunctionInvoker<csgo::R_LoadNamedSkys>{ retSpoofGadgets->engine, enginePatternFinder("E8 ? ? ? ? 84 C0 74 2D A1"_pat).add(1).relativeToAbsolute().get() } };
-#elif IS_LINUX()
-    return SkyboxChanger{ cvar, FunctionInvoker<csgo::R_LoadNamedSkys>{ retSpoofGadgets->engine, enginePatternFinder("55 4C 8D 05 ? ? ? ? 48 89 E5 41 57"_pat).get() } };
-#endif
-}
-
-Visuals::Visuals(const Memory& memory, OtherInterfaces interfaces, ClientInterfaces clientInterfaces, EngineInterfaces engineInterfaces, const PatternFinder& clientPatternFinder, const PatternFinder& enginePatternFinder)
-    : memory{ memory }, interfaces{ interfaces }, clientInterfaces{ clientInterfaces }, engineInterfaces{ engineInterfaces }, skyboxChanger{ createSkyboxChanger(interfaces.getCvar(), enginePatternFinder) }, postProcessingDisabler{ createPostProcessingDisabler(clientPatternFinder) }, scopeOverlayRemover{ createScopeOverlayRemover(clientPatternFinder) },
-#if IS_WIN32()
-    viewRenderBeams{ csgo::ViewRenderBeams::from(retSpoofGadgets->client, clientPatternFinder("B9 ? ? ? ? 0F 11 44 24 ? C7 44 24 ? ? ? ? ? F3 0F 10 84 24"_pat).add(1).deref().as<csgo::ViewRenderBeamsPOD*>()) },
-    maxFlashAlphaProxy{ retSpoofGadgets->client, clientPatternFinder("55 8B EC 8B 4D 0C 8B 45 08 81 C1"_pat).get() }
-#elif IS_LINUX()
-    viewRenderBeams{ csgo::ViewRenderBeams::from(retSpoofGadgets->client, clientPatternFinder("C7 45 ? ? ? ? ? 4C 8D 25 ? ? ? ? 49 8B 3C 24"_pat).add(10).relativeToAbsolute().deref().as<csgo::ViewRenderBeamsPOD*>()) }
+    , maxFlashAlphaProxy{ retSpoofGadgets->client, clientPatternFinder.maxFlashAlphaProxy() }
 #endif
 {
-#if IS_WIN32()
-    cameraThink = ReturnAddress{ clientPatternFinder("85 C0 75 30 38 87"_pat).get() };
-#elif IS_LINUX()
-    cameraThink = ReturnAddress{ clientPatternFinder("0F 1F 80 ? ? ? ? 85 C0 75 5C"_pat).add(6).get() };
-#endif
     ResetConfigurator configurator;
     configure(configurator);
 }
@@ -526,69 +476,7 @@ void Visuals::skybox(csgo::FrameStage stage) noexcept
 
 void Visuals::bulletTracer(const csgo::GameEvent& event) noexcept
 {
-    if (!visualsConfig.bulletTracers.enabled)
-        return;
-
-    if (!localPlayer)
-        return;
-
-    if (event.getInt("userid") != localPlayer.get().getUserId(engineInterfaces.getEngine()))
-        return;
-
-    const auto activeWeapon = csgo::Entity::from(retSpoofGadgets->client, localPlayer.get().getActiveWeapon());
-    if (activeWeapon.getPOD() == nullptr)
-        return;
-
-    csgo::BeamInfo beamInfo;
-
-    if (!localPlayer.get().shouldDraw()) {
-        const auto viewModel = csgo::Entity::from(retSpoofGadgets->client, clientInterfaces.getEntityList().getEntityFromHandle(localPlayer.get().viewModel()));
-        if (viewModel.getPOD() == nullptr)
-            return;
-
-        if (!viewModel.getAttachment(activeWeapon.getMuzzleAttachmentIndex1stPerson(viewModel.getPOD()), beamInfo.start))
-            return;
-    } else {
-        const auto worldModel = csgo::Entity::from(retSpoofGadgets->client, clientInterfaces.getEntityList().getEntityFromHandle(activeWeapon.weaponWorldModel()));
-        if (worldModel.getPOD() == nullptr)
-            return;
-
-        if (!worldModel.getAttachment(activeWeapon.getMuzzleAttachmentIndex3rdPerson(), beamInfo.start))
-            return;
-    }
-
-    beamInfo.end.x = event.getFloat("x");
-    beamInfo.end.y = event.getFloat("y");
-    beamInfo.end.z = event.getFloat("z");
-
-    beamInfo.modelName = "sprites/physbeam.vmt";
-    beamInfo.modelIndex = -1;
-    beamInfo.haloName = nullptr;
-    beamInfo.haloIndex = -1;
-
-    beamInfo.red = 255.0f * visualsConfig.bulletTracers.asColor4().color[0];
-    beamInfo.green = 255.0f * visualsConfig.bulletTracers.asColor4().color[1];
-    beamInfo.blue = 255.0f * visualsConfig.bulletTracers.asColor4().color[2];
-    beamInfo.brightness = 255.0f * visualsConfig.bulletTracers.asColor4().color[3];
-
-    beamInfo.type = 0;
-    beamInfo.life = 0.0f;
-    beamInfo.amplitude = 0.0f;
-    beamInfo.segments = -1;
-    beamInfo.renderable = true;
-    beamInfo.speed = 0.2f;
-    beamInfo.startFrame = 0;
-    beamInfo.frameRate = 0.0f;
-    beamInfo.width = 2.0f;
-    beamInfo.endWidth = 2.0f;
-    beamInfo.flags = 0x40;
-    beamInfo.fadeLength = 20.0f;
-
-    if (const auto beam = viewRenderBeams.createBeamPoints(beamInfo)) {
-        constexpr auto FBEAM_FOREVER = 0x4000;
-        beam->flags &= ~FBEAM_FOREVER;
-        beam->die = memory.globalVars->currenttime + 2.0f;
-    }
+    bulletTracers.onBulletImpact(event);
 }
 
 void Visuals::drawMolotovHull(ImDrawList* drawList) noexcept
@@ -666,10 +554,10 @@ void Visuals::updateEventListeners(bool forceRemove) noexcept
     static DefaultEventListener listener;
     static bool listenerRegistered = false;
 
-    if (visualsConfig.bulletTracers.enabled && !listenerRegistered) {
+    if (bulletTracers.enabled && !listenerRegistered) {
         engineInterfaces.getGameEventManager(memory.getEventDescriptor).addListener(&listener, csgo::bullet_impact);
         listenerRegistered = true;
-    } else if ((!visualsConfig.bulletTracers.enabled || forceRemove) && listenerRegistered) {
+    } else if ((!bulletTracers.enabled || forceRemove) && listenerRegistered) {
         engineInterfaces.getGameEventManager(memory.getEventDescriptor).removeListener(&listener);
         listenerRegistered = false;
     }
@@ -770,7 +658,7 @@ void Visuals::drawGUI(bool contentOnly) noexcept
     ImGui::SliderFloat("Hit effect time", &visualsConfig.hitEffectTime, 0.1f, 1.5f, "%.2fs");
     ImGui::Combo("Hit marker", &visualsConfig.hitMarker, "None\0Default (Cross)\0");
     ImGui::SliderFloat("Hit marker time", &visualsConfig.hitMarkerTime, 0.1f, 1.5f, "%.2fs");
-    ImGuiCustom::colorPicker("Bullet Tracers", visualsConfig.bulletTracers.asColor4().color.data(), &visualsConfig.bulletTracers.asColor4().color[3], nullptr, nullptr, &visualsConfig.bulletTracers.enabled);
+    ImGuiCustom::colorPicker("Bullet Tracers", bulletTracers.color.color.data(), &bulletTracers.color.color[3], nullptr, nullptr, &bulletTracers.enabled);
     ImGuiCustom::colorPicker("Molotov Hull", visualsConfig.molotovHull);
 
     ImGui::Checkbox("Color correction", &colorCorrection.enabled);

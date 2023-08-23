@@ -8,11 +8,9 @@ namespace csgo
 {
 
 struct WeaponInfo;
+struct WeaponSystemPOD;
 
-class WeaponSystem : private VirtualCallable {
-public:
-    using VirtualCallable::VirtualCallable;
-
+struct WeaponSystem : GameClass<WeaponSystem, WeaponSystemPOD> {
     VIRTUAL_METHOD(WeaponInfo*, getWeaponInfo, 2, (WeaponId weaponId), (weaponId))
 };
 

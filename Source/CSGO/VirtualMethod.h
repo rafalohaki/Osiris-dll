@@ -6,42 +6,16 @@
 #include <Platform/Macros/IsPlatform.h>
 #include <RetSpoof/RetSpoofInvoker.h>
 
-class VirtualCallable {
-public:
-    VirtualCallable(RetSpoofInvoker invoker, std::uintptr_t thisptr)
-        : invoker{ invoker }, thisptr{ thisptr } {}
-
-    template <typename ReturnType, std::size_t Idx, typename... Args>
-    constexpr ReturnType call(Args... args) const noexcept
-    {
-        return invoker.invokeThiscall<ReturnType, Args...>(thisptr, (*reinterpret_cast<std::uintptr_t**>(thisptr))[Idx], args...);
-    }
-
-    [[nodiscard]] std::uintptr_t getThis() const noexcept
-    {
-        return thisptr;
-    }
-
-    [[nodiscard]] RetSpoofInvoker getInvoker() const noexcept
-    {
-        return invoker;
-    }
-
-private:
-    RetSpoofInvoker invoker;
-    std::uintptr_t thisptr;
-};
-
 template <typename T, typename POD>
-class VirtualCallableFromPOD {
+class GameClass {
 public:
-    VirtualCallableFromPOD(RetSpoofInvoker invoker, POD* pod)
+    GameClass(RetSpoofInvoker invoker, POD* pod)
         : invoker{ invoker }, thisptr{ std::uintptr_t(pod) } {}
 
     template <typename... Args>
     [[nodiscard]] static T from(RetSpoofInvoker invoker, POD* pod, Args&&... args) noexcept
     {
-        return T{ VirtualCallableFromPOD{ invoker, pod }, std::forward<Args>(args)... };
+        return T{ GameClass{ invoker, pod }, std::forward<Args>(args)... };
     }
 
     [[nodiscard]] POD* getPOD() const noexcept

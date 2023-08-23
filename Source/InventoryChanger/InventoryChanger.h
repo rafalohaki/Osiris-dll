@@ -8,6 +8,7 @@
 #include "Backend/Request/RequestBuilder.h"
 #include "Backend/Request/ItemActivationHandler.h"
 #include "Backend/Request/XRayScannerHandler.h"
+#include <BytePatterns/ClientPatternFinder.h>
 #include "GameIntegration/Inventory.h"
 #include "GameItems/Lookup.h"
 #include "GameItems/CrateLootLookup.h"
@@ -24,14 +25,15 @@ namespace csgo
 
 enum class FrameStage;
 enum class Team;
-class Entity;
+struct Entity;
 struct EntityPOD;
-class GameEvent;
-class SharedObject;
+struct GameEvent;
+struct SharedObject;
 
 }
 
 class ClientInterfaces;
+class PanoramaMarshallHelperHooks;
 
 namespace inventory_changer
 {
@@ -53,11 +55,11 @@ struct InventoryChangerReturnAddresses {
     ReturnAddress useToolGetArgAsString;
 };
 
-[[nodiscard]] InventoryChangerReturnAddresses createInventoryChangerReturnAddresses(const PatternFinder& clientPatternFinder);
+[[nodiscard]] InventoryChangerReturnAddresses createInventoryChangerReturnAddresses(const ClientPatternFinder& clientPatternFinder);
 
 class InventoryChanger {
 public:
-    InventoryChanger(const EngineInterfaces& engineInterfaces, const ClientInterfaces& clientInterfaces, const OtherInterfaces& interfaces, const Memory& memory, game_items::Lookup gameItemLookup, game_items::CrateLootLookup crateLootLookup, const PatternFinder& clientPatternFinder, Helpers::RandomGenerator& randomGenerator)
+    InventoryChanger(const EngineInterfaces& engineInterfaces, const ClientInterfaces& clientInterfaces, const OtherInterfaces& interfaces, const Memory& memory, game_items::Lookup gameItemLookup, game_items::CrateLootLookup crateLootLookup, const ClientPatternFinder& clientPatternFinder, Helpers::RandomGenerator& randomGenerator)
         : engineInterfaces{ engineInterfaces }, clientInterfaces{ clientInterfaces }, otherInterfaces{ interfaces }, backend{ std::move(gameItemLookup), std::move(crateLootLookup), memory, randomGenerator }, returnAddresses{ createInventoryChangerReturnAddresses(clientPatternFinder) }, gameInventory{ interfaces, memory, clientPatternFinder } {}
 
     [[nodiscard]] const game_items::Lookup& getGameItemLookup() const noexcept
@@ -84,8 +86,8 @@ public:
     void onRoundMVP(const csgo::GameEvent& event);
     void updateStatTrak(const csgo::GameEvent& event);
     void overrideHudIcon(const Memory& memory, const csgo::GameEvent& event);
-    void getArgAsStringHook(const Memory& memory, const char* string, ReturnAddress returnAddress, void* params);
-    void getNumArgsHook(csgo::PanoramaMarshallHelperPOD* panoramaMarshallHelper, unsigned numberOfArgs, ReturnAddress returnAddress, void* params);
+    void getArgAsStringHook(const PanoramaMarshallHelperHooks& panoramaMarshallHelperHooks, const Memory& memory, const char* string, ReturnAddress returnAddress, void* params);
+    void getNumArgsHook(const PanoramaMarshallHelperHooks& panoramaMarshallHelperHooks, csgo::PanoramaMarshallHelperPOD* panoramaMarshallHelper, unsigned numberOfArgs, ReturnAddress returnAddress, void* params);
     int setResultIntHook(ReturnAddress returnAddress, void* params, int result);
     void onUserTextMsg(const Memory& memory, const void*& data, int& size);
     void onItemEquip(csgo::Team team, int slot, std::uint64_t& itemID);
@@ -125,6 +127,6 @@ private:
     game_integration::Inventory gameInventory;
 };
 
-InventoryChanger createInventoryChanger(const EngineInterfaces& engineInterfaces, const ClientInterfaces& clientInterfaces, const OtherInterfaces& interfaces, const Memory& memory, const PatternFinder& clientPatternFinder, Helpers::RandomGenerator& randomGenerator);
+InventoryChanger createInventoryChanger(const EngineInterfaces& engineInterfaces, const ClientInterfaces& clientInterfaces, const OtherInterfaces& interfaces, const Memory& memory, const ClientPatternFinder& clientPatternFinder, Helpers::RandomGenerator& randomGenerator);
 
 }

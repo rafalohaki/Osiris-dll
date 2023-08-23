@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Pad.h"
+#include <Utils/Pad.h>
 #include "VirtualMethod.h"
 
 namespace csgo
@@ -18,8 +18,7 @@ struct SurfaceData {
 
 struct PhysicsSurfacePropsPOD;
 
-class PhysicsSurfaceProps : public VirtualCallableFromPOD<PhysicsSurfaceProps, PhysicsSurfacePropsPOD> {
-public:
+struct PhysicsSurfaceProps : GameClass<PhysicsSurfaceProps, PhysicsSurfacePropsPOD> {
     VIRTUAL_METHOD_V(SurfaceData*, getSurfaceData, 5, (int index), (index))
 };
 

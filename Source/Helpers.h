@@ -54,8 +54,6 @@ namespace Helpers
     template <typename T> constexpr auto deg2rad(T degrees) noexcept { return degrees * (std::numbers::pi_v<T> / static_cast<T>(180)); }
     template <typename T> constexpr auto rad2deg(T radians) noexcept { return radians * (static_cast<T>(180) / std::numbers::pi_v<T>); }
 
-    [[nodiscard]] std::size_t calculateVmtLength(const std::uintptr_t* vmt) noexcept;
-
     constexpr auto isKnife(WeaponId id) noexcept
     {
         return (id >= WeaponId::Bayonet && id <= WeaponId::SkeletonKnife) || id == WeaponId::KnifeT || id == WeaponId::Knife;
@@ -75,7 +73,9 @@ namespace Helpers
         case Antwerp2022ViewerPassWith3Tokens: return Antwerp2022BronzeCoin;
         case Rio2022ViewerPass:
         case Rio2022ViewerPassWith3Tokens: return Rio2022BronzeCoin;
-        default: return WeaponId::None;
+        case Paris2023ViewerPass:
+        case Paris2023ViewerPassWith3Tokens: return Paris2023BronzeCoin;
+        default: return WeaponId{};
         }
     }
 

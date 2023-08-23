@@ -6,6 +6,7 @@
 #include <Platform/Macros/IsPlatform.h>
 #include <Config/ResetConfigurator.h>
 #include <Utils/ReturnAddress.h>
+#include "Visuals/BulletTracers.h"
 #include "Visuals/ColorCorrection.h"
 #include "Visuals/SkyboxChanger.h"
 #include "Visuals/PostProcessingDisabler.h"
@@ -15,6 +16,8 @@
 #include <CSGO/ViewRenderBeams.h>
 #include <MemorySearch/BytePatternLiteral.h>
 #include <MemorySearch/PatternFinder.h>
+#include <BytePatterns/ClientPatternFinder.h>
+#include <BytePatterns/EnginePatternFinder.h>
 
 namespace csgo { enum class FrameStage; }
 class GameEvent;
@@ -23,7 +26,7 @@ class EngineInterfaces;
 
 class Visuals {
 public:
-    Visuals(const Memory& memory, OtherInterfaces interfaces, ClientInterfaces clientInterfaces, EngineInterfaces engineInterfaces, const PatternFinder& clientPatternFinder, const PatternFinder& enginePatternFinder);
+    Visuals(const Memory& memory, OtherInterfaces interfaces, ClientInterfaces clientInterfaces, EngineInterfaces engineInterfaces, const ClientPatternFinder& clientPatternFinder, const EnginePatternFinder& enginePatternFinder);
 
     bool isZoomOn() noexcept;
     bool isDeagleSpinnerOn() noexcept;
@@ -94,6 +97,7 @@ public:
         configurator("Wireframe smoke", wireframeSmoke).def(false);
         configurator("Zoom", zoom).def(false);
         configurator("Skybox Changer", skyboxChanger);
+        configurator("Bullet Tracers", bulletTracers);
     }
 
 private:
@@ -106,7 +110,7 @@ private:
     PostProcessingDisabler postProcessingDisabler;
     ScopeOverlayRemover scopeOverlayRemover;
     ReturnAddress cameraThink;
-    csgo::ViewRenderBeams viewRenderBeams;
+    BulletTracers bulletTracers;
 
 #if IS_WIN32()
     FunctionInvoker<csgo::RecvProxy> maxFlashAlphaProxy;
