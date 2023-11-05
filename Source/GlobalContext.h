@@ -1,94 +1,80 @@
 #pragma once
 
-#include <cstdint>
+#include <optional>
 
-#include <Platform/Macros/IsPlatform.h>
+#include "CS2/Constants/DllNames.h"
+#include "Hooks/Hooks.h"
+#include "Hooks/PeepEventsHook.h"
+#include "Hooks/ViewRenderHook.h"
 
-#if IS_WIN32()
-#include <d3d9.h>
-#include <Windows.h>
-#elif IS_LINUX()
-#include <SDL2/SDL.h>
-#endif
-#include "Config.h"
-#include "EventListener.h"
+#include <MemorySearch/PatternFinder.h>
+#include <Features/Features.h>
+#include <FeatureHelpers/Sound/SoundWatcher.h>
+#include <UI/Panorama/PanoramaGUI.h>
+#include "Platform/DynamicLibrary.h"
 
-#include "Hacks/Aimbot.h"
-#include "Hacks/Backtrack.h"
-#include "Hacks/Glow.h"
-#include "Hacks/Visuals.h"
-#include "Interfaces/ClientInterfaces.h"
-#include "Interfaces/EngineInterfaces.h"
-#include "CSGO/CSPlayerInventory.h"
-#include "Utils/ReturnAddress.h"
-#include "InventoryChanger/InventoryChanger.h"
-#include "Hacks/Features.h"
-#include "Hooks.h"
-#include "MemoryAllocation/FixedAllocator.h"
+#include "GameClasses/Implementation/GameClassImplementations.h"
+#include "Helpers/UnloadFlag.h"
+#include "Utils/LazyInitialized.h"
 
-namespace csgo
-{
-    enum class FrameStage;
-    enum class UserMessageType;
+#include "BuildConfig.h"
 
-    struct ConVarPOD;
-    struct DemoPlaybackParameters;
-    struct matrix3x4;
-    struct ModelRenderInfo;
-    struct recvProxyData;
-    struct SoundInfo;
-    struct UserCmd;
-    struct ViewSetup;
-}
+struct GlobalContext {
+    PeepEventsHook peepEventsHook{ DynamicLibrary{cs2::SDL_DLL}.getFunctionAddress("SDL_PeepEvents").add(WIN32_LINUX(3, 2)).abs().as<cs2::SDL_PeepEvents*>() };
+    UnloadFlag unloadFlag;
+    FreeMemoryRegionList freeRegionList{ storage };
+    PatternFinder<PatternNotFoundLogger> clientPatternFinder{ DynamicLibrary{cs2::CLIENT_DLL}.getCodeSection().raw(), PatternNotFoundLogger{} };
+    PatternFinder<PatternNotFoundLogger> panoramaPatternFinder{ DynamicLibrary{cs2::PANORAMA_DLL}.getCodeSection().raw(), PatternNotFoundLogger{} };
+    PatternFinder<PatternNotFoundLogger> soundSystemPatternFinder{ DynamicLibrary{cs2::SOUNDSYSTEM_DLL}.getCodeSection().raw(), PatternNotFoundLogger{} };
+    PatternFinder<PatternNotFoundLogger> fileSystemPatternFinder{ DynamicLibrary{cs2::FILESYSTEM_DLL}.getCodeSection().raw(), PatternNotFoundLogger{} };
+    LazyInitialized<GameClassImplementations> gameClasses;
+    LazyInitialized<Hooks> hooks;
+    LazyInitialized<SoundWatcher> soundWatcher;
+    LazyInitialized<Features> features;
+    LazyInitialized<PanoramaGUI> panoramaGUI;
 
-enum class GlobalContextState {
-    NotInitialized,
-    Initializing,
-    Initialized
-};
-
-class GlobalContext {
-public:
-#if IS_WIN32() || IS_WIN64()
-    GlobalContext(HMODULE moduleHandle);
-
-    HMODULE moduleHandle;
-    std::optional<WindowProcedureHook> windowProcedureHook;
-#elif IS_LINUX()
-    GlobalContext();
-
-    std::add_pointer_t<int(SDL_Event*)> pollEvent;
-
-    int pollEventHook(SDL_Event* event);
-    void swapWindowHook(SDL_Window* window);
-#endif
-
-    FixedAllocator<10'000> fixedAllocator;
-    std::optional<Hooks> hooks;
-    std::optional<EventListener> gameEventListener;
-    std::optional<EngineInterfacesPODs> engineInterfacesPODs;
-    std::optional<Features> features;
-
-    [[nodiscard]] EngineInterfaces getEngineInterfaces() const noexcept
+    static void initializeInstance() noexcept
     {
-        return EngineInterfaces{ retSpoofGadgets->engine, *engineInterfacesPODs };
+        if (!globalContext.isInitialized()) {
+            globalContext.initialize();
+            globalContext->enableIfValid();
+        }
     }
 
-    [[nodiscard]] OtherInterfaces getOtherInterfaces() const noexcept
+    [[nodiscard]] static GlobalContext& instance() noexcept
     {
-        return OtherInterfaces{ retSpoofGadgets->client, *interfaces };
+        return *globalContext;
     }
 
-    void enable();
-    void renderFrame();
+    static void destroyInstance() noexcept
+    {
+        globalContext.destroy();
+    }
 
-    GlobalContextState state = GlobalContextState::NotInitialized;
+    void initializeFromGameThread() noexcept
+    {
+        if (initializedFromGameThread)
+            return;
 
-    std::optional<Config> config;
-    std::optional<ClientInterfacesPODs> clientInterfaces;
-    std::optional<const OtherInterfacesPODs> interfaces;
-    std::optional<Helpers::RandomGenerator> randomGenerator;
-    std::optional<const Memory> memory;
+        gameClasses.init(Tier0Dll{});
+        const VmtLengthCalculator clientVmtLengthCalculator{ DynamicLibrary{cs2::CLIENT_DLL}.getCodeSection(), DynamicLibrary{cs2::CLIENT_DLL}.getVmtSection() };
+        hooks.init(clientVmtLengthCalculator);
+        GlobalVarsProvider globalVarsProvider;
+        soundWatcher.init(globalVarsProvider);
+        features.init(HudProvider{}, globalVarsProvider, hooks->loopModeGameHook, hooks->viewRenderHook, *soundWatcher);
+        panoramaGUI.init(*features, unloadFlag);
 
-    void initialize();
+        initializedFromGameThread = true;
+    }
+
+    void enableIfValid()
+    {
+        if (peepEventsHook.isValid())
+            peepEventsHook.enable();
+    }
+
+private:
+    bool initializedFromGameThread = false;
+    static constinit ManuallyDestructible<GlobalContext> globalContext;
+    alignas(FreeMemoryRegionList::minimumAlignment()) static constinit std::byte storage[build::MEMORY_CAPACITY];
 };
