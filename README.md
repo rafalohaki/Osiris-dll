@@ -7,6 +7,7 @@ Free and open-source game hack for **Counter-Strike 2**. Compatible with the lat
 
 ## What's new
 
+* 8 November 2023 - Adjusted positions of sound visualizations to be closer to the sound source
 * 1 November 2023 - **Visualize Bomb Plant** function was added to **Sound**
 * 27 October 2023 - **Visualize Player Footsteps** function was added to **Sound**
 
@@ -29,7 +30,7 @@ Free and open-source game hack for **Counter-Strike 2**. Compatible with the lat
 
 #### Linux
 
-* **CMake 3.16** or newer
+* **CMake 3.24** or newer
 * **g++ 11 or newer** or **clang++ 15 or newer**
 
 ### Compiling from source

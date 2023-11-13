@@ -34,12 +34,21 @@
     <ClInclude Include="CS2\Constants\SoundNames.h" />
     <ClInclude Include="Endpoints.h" />
     <ClInclude Include="FeatureHelpers\ClipSpaceCoordinates.h" />
+    <ClInclude Include="FeatureHelpers\FeatureHelpers.h" />
     <ClInclude Include="FeatureHelpers\GlobalVarsProvider.h" />
+    <ClInclude Include="FeatureHelpers\HudInWorldPanelFactory.h" />
+    <ClInclude Include="FeatureHelpers\Hud\BombTimerHelpers.h" />
+    <ClInclude Include="FeatureHelpers\Hud\DefusingAlertHelpers.h" />
+    <ClInclude Include="FeatureHelpers\Hud\KillfeedPreserverHelpers.h" />
     <ClInclude Include="FeatureHelpers\NormalizedDeviceCoordinates.h" />
+    <ClInclude Include="FeatureHelpers\Sound\BombPlantSound.h" />
+    <ClInclude Include="FeatureHelpers\Sound\BombPlantVisualizerHelpers.h" />
+    <ClInclude Include="FeatureHelpers\Sound\FootstepSound.h" />
+    <ClInclude Include="FeatureHelpers\Sound\FootstepVisualizerHelpers.h" />
     <ClInclude Include="FeatureHelpers\Sound\PlayedSound.h" />
     <ClInclude Include="FeatureHelpers\Sound\SoundWatcher.h" />
+    <ClInclude Include="FeatureHelpers\Sound\SoundWatcherImpl.h" />
     <ClInclude Include="FeatureHelpers\Sound\WatchedSounds.h" />
-    <ClInclude Include="FeatureHelpers\Sound\WatchedSoundType.h" />
     <ClInclude Include="FeatureHelpers\TogglableFeature.h" />
     <ClInclude Include="FeatureHelpers\WorldToClipSpaceConverter.h" />
     <ClInclude Include="Features\Features.h" />
@@ -64,6 +73,7 @@
     <ClInclude Include="GameClasses\Implementation\GameClassImplementations.h" />
     <ClInclude Include="GameClasses\Implementation\GameRulesImpl.h" />
     <ClInclude Include="GameClasses\Implementation\MemAllocImpl.h" />
+    <ClInclude Include="GameClasses\Implementation\PanelImpl.h" />
     <ClInclude Include="GameClasses\Implementation\PanoramaImagePanelImpl.h" />
     <ClInclude Include="GameClasses\Implementation\PanoramaLabelImpl.h" />
     <ClInclude Include="GameClasses\Implementation\PanoramaUiEngineImpl.h" />
@@ -75,6 +85,7 @@
     <ClInclude Include="GameClasses\OffsetTypes\GameRulesOffset.h" />
     <ClInclude Include="GameClasses\OffsetTypes\PanoramaUiPanelOffset.h" />
     <ClInclude Include="GameClasses\OffsetTypes\PlantedC4Offset.h" />
+    <ClInclude Include="GameClasses\Panel.h" />
     <ClInclude Include="GameClasses\PanelStyle.h" />
     <ClInclude Include="GameClasses\PanoramaImagePanel.h" />
     <ClInclude Include="GameClasses\PanoramaLabel.h" />
@@ -110,6 +121,7 @@
     <ClInclude Include="MemoryPatterns\Linux\GameRulesPatternsLinux.h" />
     <ClInclude Include="MemoryPatterns\Linux\LinuxPatterns.h" />
     <ClInclude Include="MemoryPatterns\Linux\MemAllocPatternsLinux.h" />
+    <ClInclude Include="MemoryPatterns\Linux\PanelPatternsLinux.h" />
     <ClInclude Include="MemoryPatterns\Linux\PanoramaImagePanelPatternsLinux.h" />
     <ClInclude Include="MemoryPatterns\Linux\PanoramaLabelPatternsLinux.h" />
     <ClInclude Include="MemoryPatterns\Linux\PanoramaUiEnginePatternsLinux.h" />
@@ -117,6 +129,7 @@
     <ClInclude Include="MemoryPatterns\Linux\PlantedC4PatternsLinux.h" />
     <ClInclude Include="MemoryPatterns\Linux\SoundSystemPatternsLinux.h" />
     <ClInclude Include="MemoryPatterns\MemAllocPatterns.h" />
+    <ClInclude Include="MemoryPatterns\PanelPatterns.h" />
     <ClInclude Include="MemoryPatterns\PanoramaImagePanelPatterns.h" />
     <ClInclude Include="MemoryPatterns\PanoramaLabelPatterns.h" />
     <ClInclude Include="MemoryPatterns\PanoramaUiEnginePatterns.h" />
@@ -128,6 +141,7 @@
     <ClInclude Include="MemoryPatterns\Windows\FileSystemPatternsWindows.h" />
     <ClInclude Include="MemoryPatterns\Windows\GameRulesPatternsWindows.h" />
     <ClInclude Include="MemoryPatterns\Windows\MemAllocPatternsWindows.h" />
+    <ClInclude Include="MemoryPatterns\Windows\PanelPatternsWindows.h" />
     <ClInclude Include="MemoryPatterns\Windows\PanoramaImagePanelPatternsWindows.h" />
     <ClInclude Include="MemoryPatterns\Windows\PanoramaLabelPatternsWindows.h" />
     <ClInclude Include="MemoryPatterns\Windows\PanoramaUiEnginePatternsWindows.h" />
@@ -188,6 +202,8 @@
     <ClInclude Include="Utils\SpanSlice.h" />
     <ClInclude Include="Utils\StringBuilder.h" />
     <ClInclude Include="Utils\StringParser.h" />
+    <ClInclude Include="Utils\TypeBitFlags.h" />
+    <ClInclude Include="Utils\TypeIndex.h" />
     <ClInclude Include="Verification\Verifier.h" />
     <ClInclude Include="Verification\VerifyMacros.h" />
     <ClInclude Include="Vmt\VmtCopy.h" />
@@ -249,7 +265,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;OSIRIS_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
@@ -266,7 +282,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>

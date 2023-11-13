@@ -5,7 +5,7 @@
 #include <Platform/SimpleMessageBox.h>
 
 struct PatternNotFoundLogger {
-    void operator()(BytePattern pattern, std::span<const std::byte> bytes) const
+    void operator()(BytePattern pattern, [[maybe_unused]] std::span<const std::byte> bytes) const
     {
         StringBuilderStorage<500> storage;
         auto builder = storage.builder();
@@ -32,7 +32,7 @@ struct PatternNotFoundLogger {
 
         builder.put('\n');
 
-        messageBox.showError("Error", builder.cstring());
+        messageBox.showError("Osiris", builder.cstring());
     }
 
 private:
