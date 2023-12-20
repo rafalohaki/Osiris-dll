@@ -17,6 +17,7 @@
     <ClInclude Include="CS2\Classes\Color.h" />
     <ClInclude Include="CS2\Classes\CPlantedC4.h" />
     <ClInclude Include="CS2\Classes\CUtlFilenameSymbolTable.h" />
+    <ClInclude Include="CS2\Classes\CUtlString.h" />
     <ClInclude Include="CS2\Classes\CUtlVector.h" />
     <ClInclude Include="CS2\Classes\CViewRender.h" />
     <ClInclude Include="CS2\Classes\C_CSGameRules.h" />
@@ -27,6 +28,7 @@
     <ClInclude Include="CS2\Classes\Sound.h" />
     <ClInclude Include="CS2\Classes\Vector.h" />
     <ClInclude Include="CS2\Classes\VMatrix.h" />
+    <ClInclude Include="CS2\Constants\AspectRatio.h" />
     <ClInclude Include="CS2\Constants\BombSiteIndex.h" />
     <ClInclude Include="CS2\Constants\DllNames.h" />
     <ClInclude Include="CS2\Constants\EntityHandle.h" />
@@ -58,7 +60,10 @@
     <ClInclude Include="FeatureHelpers\Sound\SoundWatcher.h" />
     <ClInclude Include="FeatureHelpers\Sound\SoundWatcherImpl.h" />
     <ClInclude Include="FeatureHelpers\Sound\WatchedSounds.h" />
+    <ClInclude Include="FeatureHelpers\Sound\WeaponScopeSound.h" />
     <ClInclude Include="FeatureHelpers\TogglableFeature.h" />
+    <ClInclude Include="FeatureHelpers\ViewToProjectionMatrix.h" />
+    <ClInclude Include="FeatureHelpers\Visuals\SniperScopeBlurRemover.h" />
     <ClInclude Include="FeatureHelpers\WorldToClipSpaceConverter.h" />
     <ClInclude Include="Features\Features.h" />
     <ClInclude Include="Features\Hud\BombTimer.h" />
@@ -70,8 +75,10 @@
     <ClInclude Include="Features\Sound\BombPlantVisualizer.h" />
     <ClInclude Include="Features\Sound\FootstepVisualizer.h" />
     <ClInclude Include="Features\Sound\SoundFeatures.h" />
+    <ClInclude Include="Features\Sound\WeaponScopeVisualizer.h" />
     <ClInclude Include="Features\Visuals\ScopeOverlayRemover\HudScopePanels.h" />
     <ClInclude Include="Features\Visuals\ScopeOverlayRemover\ScopeOverlayRemover.h" />
+    <ClInclude Include="Features\Visuals\SniperScopeBlurRemovalFeature.h" />
     <ClInclude Include="Features\Visuals\VisualFeatures.h" />
     <ClInclude Include="GameClasses\ClientMode.h" />
     <ClInclude Include="GameClasses\FileNameSymbolTable.h" />
@@ -133,6 +140,7 @@
     <ClInclude Include="MemoryPatterns\Linux\LinuxPatterns.h" />
     <ClInclude Include="MemoryPatterns\Linux\MemAllocPatternsLinux.h" />
     <ClInclude Include="MemoryPatterns\Linux\PanelPatternsLinux.h" />
+    <ClInclude Include="MemoryPatterns\Linux\PanelStylePatternsLinux.h" />
     <ClInclude Include="MemoryPatterns\Linux\PanoramaImagePanelPatternsLinux.h" />
     <ClInclude Include="MemoryPatterns\Linux\PanoramaLabelPatternsLinux.h" />
     <ClInclude Include="MemoryPatterns\Linux\PanoramaUiEnginePatternsLinux.h" />
@@ -141,6 +149,7 @@
     <ClInclude Include="MemoryPatterns\Linux\SoundSystemPatternsLinux.h" />
     <ClInclude Include="MemoryPatterns\MemAllocPatterns.h" />
     <ClInclude Include="MemoryPatterns\PanelPatterns.h" />
+    <ClInclude Include="MemoryPatterns\PanelStylePatterns.h" />
     <ClInclude Include="MemoryPatterns\PanoramaImagePanelPatterns.h" />
     <ClInclude Include="MemoryPatterns\PanoramaLabelPatterns.h" />
     <ClInclude Include="MemoryPatterns\PanoramaUiEnginePatterns.h" />
@@ -153,6 +162,7 @@
     <ClInclude Include="MemoryPatterns\Windows\GameRulesPatternsWindows.h" />
     <ClInclude Include="MemoryPatterns\Windows\MemAllocPatternsWindows.h" />
     <ClInclude Include="MemoryPatterns\Windows\PanelPatternsWindows.h" />
+    <ClInclude Include="MemoryPatterns\Windows\PanelStylePatternsWindows.h" />
     <ClInclude Include="MemoryPatterns\Windows\PanoramaImagePanelPatternsWindows.h" />
     <ClInclude Include="MemoryPatterns\Windows\PanoramaLabelPatternsWindows.h" />
     <ClInclude Include="MemoryPatterns\Windows\PanoramaUiEnginePatternsWindows.h" />
@@ -160,6 +170,7 @@
     <ClInclude Include="MemoryPatterns\Windows\PlantedC4PatternsWindows.h" />
     <ClInclude Include="MemoryPatterns\Windows\SoundSystemPatternsWindows.h" />
     <ClInclude Include="MemoryPatterns\Windows\WindowsPatterns.h" />
+    <ClInclude Include="MemorySearch\BinaryBytePattern.h" />
     <ClInclude Include="MemorySearch\BytePattern.h" />
     <ClInclude Include="MemorySearch\BytePatternConverter.h" />
     <ClInclude Include="MemorySearch\BytePatternLiteral.h" />
@@ -168,6 +179,7 @@
     <ClInclude Include="MemorySearch\PatternFinder.h" />
     <ClInclude Include="MemorySearch\PatternFinderScalar.h" />
     <ClInclude Include="MemorySearch\PatternFinderSIMD.h" />
+    <ClInclude Include="MemorySearch\PatternStringWildcard.h" />
     <ClInclude Include="Platform\DynamicLibrary.h" />
     <ClInclude Include="Platform\Linux\LinuxDynamicLibrary.h" />
     <ClInclude Include="Platform\Linux\LinuxMessageBox.h" />
@@ -187,6 +199,11 @@
     <ClInclude Include="Platform\Windows\DLLs\Shell32Dll.h" />
     <ClInclude Include="Platform\Windows\PebLdr.h" />
     <ClInclude Include="Platform\Windows\PortableExecutable.h" />
+    <ClInclude Include="Platform\Windows\RTTI\RttiCompleteObjectLocator.h" />
+    <ClInclude Include="Platform\Windows\RTTI\RttiCompleteObjectLocatorFinder.h" />
+    <ClInclude Include="Platform\Windows\RTTI\RttiTypeDescriptor.h" />
+    <ClInclude Include="Platform\Windows\RTTI\RttiTypeDescriptorFinder.h" />
+    <ClInclude Include="Platform\Windows\RTTI\ToRvaConverter.h" />
     <ClInclude Include="Platform\Windows\UserDocumentsFolderPath.h" />
     <ClInclude Include="Platform\Windows\Win.h" />
     <ClInclude Include="Platform\Windows\WindowsDynamicLibrary.h" />

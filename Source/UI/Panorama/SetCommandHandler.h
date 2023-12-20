@@ -43,6 +43,10 @@ private:
             handleTogglableFeature(features.soundFeatures.bombBeepVisualizer);
         } else if (feature == "visualize_bomb_defuse") {
             handleTogglableFeature(features.soundFeatures.bombDefuseVisualizer);
+        } else if (feature == "visualize_scope_sound") {
+            handleTogglableFeature(features.soundFeatures.weaponScopeVisualizer);
+        } else if (feature == "visualize_reload_sound") {
+            handleTogglableFeature(features.soundFeatures.weaponReloadVisualizer);
         }
     }
 
@@ -50,6 +54,8 @@ private:
     {
         if (const auto feature = parser.getLine('/'); feature == "remove_scope_overlay") {
             handleTogglableFeature(features.visuals.scopeOverlayRemover);
+        } else if (feature == "remove_scope_blur") {
+            handleTogglableFeature(features.visuals.sniperScopeBlurRemoval);
         }
     }
 

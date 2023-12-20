@@ -97,6 +97,12 @@
     <Filter Include="FeatureHelpers\Hud">
       <UniqueIdentifier>{7a55ce58-0ac3-4a7f-817d-46121c678167}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Platform\Windows\RTTI">
+      <UniqueIdentifier>{3908a784-03e1-437a-97b7-7479673278cc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="FeatureHelpers\Visuals">
+      <UniqueIdentifier>{1511f056-4a2b-4e6c-b5dc-3706343f42f0}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CS2\Classes\C_CSGameRules.h">
@@ -722,6 +728,57 @@
     </ClInclude>
     <ClInclude Include="FeatureHelpers\Sound\SoundVisualization.h">
       <Filter>FeatureHelpers\Sound</Filter>
+    </ClInclude>
+    <ClInclude Include="FeatureHelpers\Sound\WeaponScopeSound.h">
+      <Filter>FeatureHelpers\Sound</Filter>
+    </ClInclude>
+    <ClInclude Include="Features\Sound\WeaponScopeVisualizer.h">
+      <Filter>Features\Sound</Filter>
+    </ClInclude>
+    <ClInclude Include="FeatureHelpers\ViewToProjectionMatrix.h">
+      <Filter>FeatureHelpers</Filter>
+    </ClInclude>
+    <ClInclude Include="CS2\Constants\AspectRatio.h">
+      <Filter>CS2\Constants</Filter>
+    </ClInclude>
+    <ClInclude Include="MemorySearch\PatternStringWildcard.h">
+      <Filter>MemorySearch</Filter>
+    </ClInclude>
+    <ClInclude Include="MemorySearch\BinaryBytePattern.h">
+      <Filter>MemorySearch</Filter>
+    </ClInclude>
+    <ClInclude Include="Platform\Windows\RTTI\RttiCompleteObjectLocatorFinder.h">
+      <Filter>Platform\Windows\RTTI</Filter>
+    </ClInclude>
+    <ClInclude Include="Platform\Windows\RTTI\RttiTypeDescriptor.h">
+      <Filter>Platform\Windows\RTTI</Filter>
+    </ClInclude>
+    <ClInclude Include="Platform\Windows\RTTI\RttiTypeDescriptorFinder.h">
+      <Filter>Platform\Windows\RTTI</Filter>
+    </ClInclude>
+    <ClInclude Include="Platform\Windows\RTTI\ToRvaConverter.h">
+      <Filter>Platform\Windows\RTTI</Filter>
+    </ClInclude>
+    <ClInclude Include="Platform\Windows\RTTI\RttiCompleteObjectLocator.h">
+      <Filter>Platform\Windows\RTTI</Filter>
+    </ClInclude>
+    <ClInclude Include="FeatureHelpers\Visuals\SniperScopeBlurRemover.h">
+      <Filter>FeatureHelpers\Visuals</Filter>
+    </ClInclude>
+    <ClInclude Include="Features\Visuals\SniperScopeBlurRemovalFeature.h">
+      <Filter>Features\Visuals</Filter>
+    </ClInclude>
+    <ClInclude Include="MemoryPatterns\PanelStylePatterns.h">
+      <Filter>MemoryPatterns</Filter>
+    </ClInclude>
+    <ClInclude Include="MemoryPatterns\Linux\PanelStylePatternsLinux.h">
+      <Filter>MemoryPatterns\Linux</Filter>
+    </ClInclude>
+    <ClInclude Include="MemoryPatterns\Windows\PanelStylePatternsWindows.h">
+      <Filter>MemoryPatterns\Windows</Filter>
+    </ClInclude>
+    <ClInclude Include="CS2\Classes\CUtlString.h">
+      <Filter>CS2\Classes</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

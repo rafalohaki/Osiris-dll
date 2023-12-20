@@ -197,17 +197,27 @@ $.Osiris = (function () {
 
   var visuals = createTab('visuals');
   var weapons = createSection(visuals, 'Weapons');
+  createYesNoDropDown(weapons, "Remove Sniper Scope Blur", 'visuals', 'remove_scope_blur');
+  $.CreatePanel('Panel', weapons, '', { class: "horizontal-separator" });
   createYesNoDropDown(weapons, "Remove Scope Overlay", 'visuals', 'remove_scope_overlay');
 
   var sound = createTab('sound');
-  var visualization = createSection(sound, 'Visualization');
-  createYesNoDropDown(visualization, "Visualize Player Footsteps", 'sound', 'visualize_player_footsteps');
-  $.CreatePanel('Panel', visualization, '', { class: "horizontal-separator" });
-  createYesNoDropDown(visualization, "Visualize Bomb Plant", 'sound', 'visualize_bomb_plant');
-  $.CreatePanel('Panel', visualization, '', { class: "horizontal-separator" });
-  createYesNoDropDown(visualization, "Visualize Bomb Beep", 'sound', 'visualize_bomb_beep');
-  $.CreatePanel('Panel', visualization, '', { class: "horizontal-separator" });
-  createYesNoDropDown(visualization, "Visualize Bomb Defuse", 'sound', 'visualize_bomb_defuse');
+  
+  var playerSoundVisualization = createSection(sound, 'Player Sound Visualization');
+  $.CreatePanel('Panel', playerSoundVisualization, '', { class: "horizontal-separator" });
+  createYesNoDropDown(playerSoundVisualization, "Visualize Player Footsteps", 'sound', 'visualize_player_footsteps');
+
+  var bombSoundVisualization = createSection(sound, 'Bomb Sound Visualization');
+  createYesNoDropDown(bombSoundVisualization, "Visualize Bomb Plant", 'sound', 'visualize_bomb_plant');
+  $.CreatePanel('Panel', bombSoundVisualization, '', { class: "horizontal-separator" });
+  createYesNoDropDown(bombSoundVisualization, "Visualize Bomb Beep", 'sound', 'visualize_bomb_beep');
+  $.CreatePanel('Panel', bombSoundVisualization, '', { class: "horizontal-separator" });
+  createYesNoDropDown(bombSoundVisualization, "Visualize Bomb Defuse", 'sound', 'visualize_bomb_defuse');
+
+  var weaponSoundVisualization = createSection(sound, 'Weapon Sound Visualization');
+  createYesNoDropDown(weaponSoundVisualization, "Visualize Weapon Scope Sound", 'sound', 'visualize_scope_sound');
+  $.CreatePanel('Panel', weaponSoundVisualization, '', { class: "horizontal-separator" });
+  createYesNoDropDown(weaponSoundVisualization, "Visualize Weapon Reload Sound", 'sound', 'visualize_reload_sound');
 
   $.Osiris.navigateToTab('hud');
 })();
