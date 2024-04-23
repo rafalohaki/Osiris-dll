@@ -5,10 +5,13 @@
 #include <Utils/RefCountedHook.h>
 #include <Vmt/VmtSwapper.h>
 
+extern "C" void ViewRenderHook_onRenderStart_asm(cs2::CViewRender* thisptr) noexcept;
+
 class ViewRenderHook : public RefCountedHook<ViewRenderHook> {
 public:
-    explicit ViewRenderHook(const VmtLengthCalculator& vmtLengthCalculator) noexcept
-        : vmtLengthCalculator{ vmtLengthCalculator }
+    ViewRenderHook(const ClientPatterns& clientPatterns, const VmtLengthCalculator& vmtLengthCalculator) noexcept
+        : viewRender{clientPatterns.viewRender()}
+        , vmtLengthCalculator{vmtLengthCalculator}
     {
     }
 
@@ -18,8 +21,6 @@ public:
     }
 
 private:
-    static void onRenderStart(cs2::CViewRender* thisptr) noexcept;
-
     void uninstall() const noexcept
     {
         if (viewRender && *viewRender)
@@ -34,13 +35,13 @@ private:
     void install() noexcept
     {
         if (viewRender && *viewRender && hook.install(vmtLengthCalculator, *reinterpret_cast<std::uintptr_t**>(*viewRender))) {
-            originalOnRenderStart = hook.hook(4, &onRenderStart);
+            originalOnRenderStart = hook.hook(4, &ViewRenderHook_onRenderStart_asm);
         }
     }
 
     friend class RefCountedHook;
 
-    cs2::CViewRender** viewRender{ ClientPatterns::viewRender() };
+    cs2::CViewRender** viewRender;
     VmtLengthCalculator vmtLengthCalculator;
     VmtSwapper hook;
     cs2::CViewRender::OnRenderStart* originalOnRenderStart{ nullptr };

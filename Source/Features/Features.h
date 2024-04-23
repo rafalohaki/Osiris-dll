@@ -1,21 +1,31 @@
 #pragma once
 
-#include <Helpers/PlantedC4Provider.h>
+#include <Hooks/Hooks.h>
 
 #include "Hud/HudFeatures.h"
 #include "Sound/SoundFeatures.h"
 #include "Visuals/VisualFeatures.h"
 
-class SniperScopeBlurRemover;
+#include "FeaturesStates.h"
 
 struct Features {
-    Features(SniperScopeBlurRemover& sniperScopeBlurRemover, LoopModeGameHook& loopModeGameHook, ViewRenderHook& viewRenderHook, SoundWatcher& soundWatcher) noexcept
-        : visuals{sniperScopeBlurRemover, loopModeGameHook }
-        , soundFeatures{ viewRenderHook, soundWatcher }
+    [[nodiscard]] HudFeatures hudFeatures() const noexcept
     {
+        return HudFeatures{states.hudFeaturesStates, helpers, hookDependencies};
     }
 
-    HudFeatures hudFeatures;
-    VisualFeatures visuals;
-    SoundFeatures soundFeatures;
+    [[nodiscard]] SoundFeatures soundFeatures() const noexcept
+    {
+        return SoundFeatures{states.soundFeaturesStates, helpers, hooks.viewRenderHook, hookDependencies};
+    }
+
+    [[nodiscard]] VisualFeatures visualFeatures() const noexcept
+    {
+        return VisualFeatures{states.visualFeaturesStates, helpers, hooks.viewRenderHook};
+    }
+
+    FeaturesStates& states;
+    FeatureHelpers& helpers;
+    Hooks& hooks;
+    HookDependencies& hookDependencies;
 };

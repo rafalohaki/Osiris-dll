@@ -3,8 +3,6 @@
 #include <GameClasses/PanoramaUiEngine.h>
 #include <Helpers/PanoramaPanelPointer.h>
 
-#include <FeatureHelpers/GlobalVarsProvider.h>
-#include <FeatureHelpers/Hud/BombTimerHelpers.h>
 #include <FeatureHelpers/TogglableFeature.h>
 #include <GameClasses/PanoramaLabel.h>
 #include <GameClasses/PanoramaUiPanel.h>
@@ -14,48 +12,43 @@
 #include <GameClasses/PanoramaImagePanel.h>
 
 #include <Utils/StringBuilder.h>
-#include <Helpers/PlantedC4Provider.h>
 
 #include <CS2/Constants/PanelIDs.h>
 
 #include <Helpers/HudProvider.h>
 
+#include "States/BombTimerState.h"
+
 class BombTimer : public TogglableFeature<BombTimer> {
 public:
-    void run(const BombTimerHelpers& params) noexcept
+    BombTimer(BombTimerState& state, HookDependencies& hookDependencies, HudProvider hudProvider) noexcept
+        : TogglableFeature{state.enabled}
+        , state{state}
+        , hookDependencies{hookDependencies}
+        , hudProvider{hudProvider}
+    {
+    }
+
+    void run() noexcept
     {
         if (!isEnabled())
             return;
 
-        updatePanelHandles(params.hudProvider);
+        updatePanelHandles();
         hideBombStatusPanel();
 
-        const PlantedC4 bomb{ params.plantedC4Provider.getPlantedC4() };
-
-        if (!bomb || !params.globalVarsProvider || !params.globalVarsProvider.getGlobalVars()) {
+        if (!hookDependencies.requestDependency<PlantedC4>() || !hookDependencies.requestDependency<CurTime>()) {
             hideBombTimerPanel();
             return;
         }
 
-        if (const auto timeToExplosion = bomb.getTimeToExplosion(params.globalVarsProvider.getGlobalVars()->curtime); timeToExplosion > 0.0f) {
+        const PlantedC4 bomb{hookDependencies.getDependency<PlantedC4>()};
+
+        if (const auto timeToExplosion = bomb.getTimeToExplosion(hookDependencies.getDependency<CurTime>()); timeToExplosion > 0.0f) {
             showBombTimerPanel(bomb.getBombSiteIconUrl(), timeToExplosion);
         } else {
             restorePanels();
         }
-    }
-
-    ~BombTimer() noexcept
-    {
-        restoreBombStatusPanel();
-
-        if (invisiblePanel.getHandle().isValid())
-            PanoramaUiEngine::onDeletePanel(invisiblePanel.getHandle());
-
-        if (bombTimerPanel.getHandle().isValid())
-            PanoramaUiEngine::onDeletePanel(bombTimerPanel.getHandle());
-
-        if (bombTimerContainerPanel.getHandle().isValid())
-            PanoramaUiEngine::onDeletePanel(bombTimerContainerPanel.getHandle());
     }
 
 private:
@@ -69,26 +62,26 @@ private:
     void restorePanels() const noexcept
     {
         hideBombTimerPanel();
-        restoreBombStatusPanel();
+        state.restoreBombStatusPanel();
     }
 
     void hideBombTimerPanel() const noexcept
     {
-        if (const auto bombTimerContainer = bombTimerContainerPanel.get())
+        if (const auto bombTimerContainer = state.bombTimerContainerPanel.get())
             bombTimerContainer.setVisible(false);
     }
 
     void showBombTimerPanel(const char* bombsiteIconUrl, float timeToExplosion) const noexcept
     {
-        if (const auto bombTimerContainer = bombTimerContainerPanel.get())
+        if (const auto bombTimerContainer = state.bombTimerContainerPanel.get())
             bombTimerContainer.setVisible(true);
 
         if (bombsiteIconUrl) {
-            if (const auto bombSiteIcon = bombSiteIconPanel.get())
-                PanoramaImagePanel{ static_cast<cs2::CImagePanel*>(bombSiteIcon.getClientPanel()) }.setImage(bombsiteIconUrl);
+            if (const auto bombSiteIcon = state.bombSiteIconPanel.get())
+                PanoramaImagePanel{ static_cast<cs2::CImagePanel*>(bombSiteIcon.getClientPanel()) }.setImageSvg(bombsiteIconUrl);
         }
 
-        if (const auto bombTimer = bombTimerPanel.get()) {
+        if (const auto bombTimer = state.bombTimerPanel.get()) {
             StringBuilderStorage<10> storage;
             StringBuilder builder = storage.builder();
             builder.put(static_cast<int>(timeToExplosion), '.', static_cast<int>(timeToExplosion * 10) % 10);
@@ -96,9 +89,9 @@ private:
         }
     }
 
-    void updatePanelHandles(HudProvider hudProvider) noexcept
+    void updatePanelHandles() noexcept
     {
-        if (scoreAndTimeAndBombPanel.get())
+        if (state.scoreAndTimeAndBombPanel.get())
             return;
  
         const auto hudTeamCounter = hudProvider.findChildInLayoutFile(cs2::HudTeamCounter);
@@ -109,13 +102,13 @@ private:
         if (!scoreAndTimeAndBomb)
             return;
 
-        scoreAndTimeAndBombPanel = scoreAndTimeAndBomb;
+        state.scoreAndTimeAndBombPanel = scoreAndTimeAndBomb;
 
         const auto bombStatus = scoreAndTimeAndBomb.findChildInLayoutFile("BombStatus");
         if (!bombStatus)
             return;
         
-        bombStatusPanel = bombStatus;
+        state.bombStatusPanel = bombStatus;
 
         PanoramaUiEngine::runScript(scoreAndTimeAndBomb,
             "$.CreatePanel('Panel', $.GetContextPanel().FindChildTraverse('ScoreAndTimeAndBomb'), 'InvisiblePanel');", "", 0);
@@ -124,7 +117,7 @@ private:
             return;
 
         invisiblePanelPtr.setVisible(false);
-        invisiblePanel = invisiblePanelPtr;
+        state.invisiblePanel = invisiblePanelPtr;
 
         PanoramaUiEngine::runScript(hudTeamCounter,
 R"(
@@ -149,37 +142,25 @@ R"(
         if (!bombTimerContainer)
             return;
 
-        bombTimerContainerPanel = bombTimerContainer;
+        state.bombTimerContainerPanel = bombTimerContainer;
         bombTimerContainer.setVisible(false);
 
         if (const auto bombSiteIcon = bombTimerContainer.findChildInLayoutFile("BombSiteIcon"))
-            bombSiteIconPanel = bombSiteIcon;
+            state.bombSiteIconPanel = bombSiteIcon;
 
         if (const auto bombTimer = bombTimerContainer.findChildInLayoutFile("BombTimer"))
-            bombTimerPanel = bombTimer;
+            state.bombTimerPanel = bombTimer;
     }
 
     void hideBombStatusPanel() const noexcept
     {
-        if (const auto bombStatus = bombStatusPanel.get()) {
-            if (const auto invisible = invisiblePanel.get())
+        if (const auto bombStatus = state.bombStatusPanel.get()) {
+            if (const auto invisible = state.invisiblePanel.get())
                 bombStatus.setParent(invisible);
         }
     }
 
-    void restoreBombStatusPanel() const noexcept
-    {
-        if (const auto bombStatus = bombStatusPanel.get()) {
-            if (const auto scoreAndTimeAndBomb = scoreAndTimeAndBombPanel.get())
-                bombStatus.setParent(scoreAndTimeAndBomb);
-        }
-    }
-
-    PanoramaPanelPointer scoreAndTimeAndBombPanel;
-    PanoramaPanelPointer bombStatusPanel;
-
-    PanoramaPanelPointer invisiblePanel;
-    PanoramaPanelPointer bombTimerContainerPanel;
-    PanoramaPanelPointer bombSiteIconPanel;
-    PanoramaPanelPointer bombTimerPanel;
+    BombTimerState& state;
+    HookDependencies& hookDependencies;
+    HudProvider hudProvider;
 };

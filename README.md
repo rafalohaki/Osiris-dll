@@ -7,11 +7,14 @@ Free and open-source game hack for **Counter-Strike 2**. Compatible with the lat
 
 ## What's new
 
-* 16 December 2023 - **Remove Sniper Scope Blur** function was added to **Visuals**
-* 6 December 2023 - **Visualize Weapon Reload Sound** function was added to **Sound**
-* 2 December 2023 - **Visualize Weapon Scope Sound** function was added to **Sound**
-* 23 November 2023 - **Visualize Bomb Defuse** function was added to **Sound**
-* 16 November 2023 - **Visualize Bomb Beep** function was added to **Sound**
+* 22 April 2024 - Added an option to draw player information only on enemies
+* 17 April 2024 - Added player health text color based on health value
+
+![Health-based color](https://github.com/danielkrupinski/Osiris/assets/34515229/59ae3422-c0ae-4361-bdfd-7967e57e639a)
+
+* 9 April 2024 - Added an option to **show players' active weapon** to **Visuals**
+* 2 April 2024 - Added an option to show players' health to **Visuals**
+* 26 March 2024 - **Show Player Positions Through Walls** function was added to **Visuals**
 
 ## Technical features
 
@@ -73,6 +76,6 @@ However, this injection method might be detected by VAC as gdb is visible under 
 
 ## License
 
-> Copyright (c) 2018-2023 Daniel Krupiński
+> Copyright (c) 2018-2024 Daniel Krupiński
 
 This project is licensed under the [MIT License](https://opensource.org/licenses/mit-license.php) - see the [LICENSE](https://github.com/danielkrupinski/Osiris/blob/master/LICENSE) file for details.

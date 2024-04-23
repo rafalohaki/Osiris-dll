@@ -3,7 +3,10 @@
 #include <MemoryPatterns/FileSystemPatterns.h>
 
 struct FileSystemImpl {
-    [[nodiscard]] static const FileSystemImpl& instance() noexcept;
+    explicit FileSystemImpl(const FileSystemPatterns& fileSystemPatterns) noexcept
+        : fileNamesOffset{fileSystemPatterns.fileNamesOffset()}
+    {
+    }
 
-    FileNamesOffset fileNamesOffset{ FileSystemPatterns::fileNamesOffset() };
+    FileNamesOffset fileNamesOffset;
 };

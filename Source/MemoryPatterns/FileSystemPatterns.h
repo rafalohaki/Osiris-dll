@@ -1,13 +1,14 @@
 #pragma once
 
-#include <cstdint>
-
 #include <CS2/Classes/FileSystem.h>
 #include <GameClasses/OffsetTypes/FileSystemOffset.h>
-
-using FileNamesOffset = FileSystemOffset<cs2::CBaseFileSystem::m_FileNames, std::int32_t>;
+#include <Helpers/PatternNotFoundLogger.h>
+#include <MemorySearch/PatternFinder.h>
 
 struct FileSystemPatterns {
-    [[nodiscard]] static cs2::CBaseFileSystem** fileSystem() noexcept;
-    [[nodiscard]] static FileNamesOffset fileNamesOffset() noexcept;
+    [[nodiscard]] cs2::CBaseFileSystem** fileSystem() const noexcept;
+    [[nodiscard]] FileNamesOffset fileNamesOffset() const noexcept;
+
+    const PatternFinder<PatternNotFoundLogger>& soundSystemPatternFinder;
+    const PatternFinder<PatternNotFoundLogger>& fileSystemPatternFinder;
 };

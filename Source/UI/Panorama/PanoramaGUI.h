@@ -1,7 +1,7 @@
 #pragma once
 
 #include <CS2/Classes/Panorama.h>
-#include <Features/Visuals/ScopeOverlayRemover/ScopeOverlayRemover.h>
+#include <FeatureHelpers/MainMenuProvider.h>
 #include <MemoryPatterns/ClientPatterns.h>
 #include <string_view>
 #include <Utils/StringParser.h>
@@ -12,10 +12,15 @@
 
 class PanoramaGUI {
 public:
-    PanoramaGUI() noexcept
+    void init(MainMenuProvider mainMenuProvider) noexcept
     {
-        const PanoramaUiPanel mainMenu{ ClientPatterns::mainMenuPanel()->uiPanel};
-        PanoramaUiEngine::runScript(mainMenu, "if (!$('#JsSettings')) MainMenu.PreloadSettings();", "", 0);
+        const PanoramaUiPanel mainMenu{mainMenuProvider.getMainMenuPanel()};
+        if (!mainMenu)
+            return;
+
+        // ensure settings tab is loaded because we use CSS classes from settings
+        // TODO: replace use of settings CSS classes with raw style properties
+        PanoramaUiEngine::runScript(mainMenu, "if (!$('#JsSettings')) MainMenu.NavigateToTab('JsSettings', 'settings/settings');", "", 0);
 
         const auto settings = mainMenu.findChildInLayoutFile("JsSettings");
         if (settings)
@@ -39,6 +44,8 @@ public:
     class: "mainmenu-top-navbar__radio-btn__icon",
     src: "s2r://panorama/images/icons/ui/bug.vsvg"
   });
+
+  $.DispatchEvent('Activated', $.GetContextPanel().FindChildTraverse("MainMenuNavBarHome"), 'mouse');
 })();
 )", "", 0);
 
@@ -61,7 +68,7 @@ public:
             PanoramaUiEngine::runScript(settingsPanel, "delete $.Osiris", "", 0);
     }
 
-    void run(Features& features, UnloadFlag& unloadFlag) const noexcept
+    void run(Features features, UnloadFlag& unloadFlag) const noexcept
     {
         const auto guiPanel = guiPanelPointer.get();
         if (!guiPanel)
@@ -69,7 +76,7 @@ public:
 
         const auto cmdSymbol = PanoramaUiEngine::makeSymbol(0, "cmd");
         const auto cmd = guiPanel.getAttributeString(cmdSymbol, "");
-        PanoramaCommandDispatcher{ cmd, features, unloadFlag }();
+        PanoramaCommandDispatcher{cmd, features, unloadFlag}();
         guiPanel.setAttributeString(cmdSymbol, "");
     }
 

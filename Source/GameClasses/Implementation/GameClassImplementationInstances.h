@@ -1,70 +1,64 @@
 #pragma once
 
-#include "ClientModeImpl.h"
 #include "FileNameSymbolTableImpl.h"
-#include "FileSystemImpl.h"
 #include "GameRulesImpl.h"
 #include "MemAllocImpl.h"
 #include "PanelImpl.h"
+#include "PanelStyleImpl.h"
 #include "PanoramaImagePanelImpl.h"
 #include "PanoramaLabelImpl.h"
 #include "PanoramaUiEngineImpl.h"
 #include "PanoramaUiPanelImpl.h"
-#include "PlantedC4Impl.h"
+#include "TopLevelWindowImpl.h"
 
-#include <GlobalContext.h>
-
-inline const ClientModeImpl& ClientModeImpl::instance() noexcept
-{
-    return GlobalContext::instance().gameClasses->clientMode;
-}
+#include <GlobalContext/GlobalContext.h>
 
 inline const FileNameSymbolTableImpl& FileNameSymbolTableImpl::instance() noexcept
 {
-    return GlobalContext::instance().gameClasses->fileNameSymbolTable;
-}
-
-inline const FileSystemImpl& FileSystemImpl::instance() noexcept
-{
-    return GlobalContext::instance().gameClasses->fileSystem;
+    return GlobalContext::instance().fullContext().gameClasses().fileNameSymbolTable;
 }
 
 inline const GameRulesImpl& GameRulesImpl::instance() noexcept
 {
-    return GlobalContext::instance().gameClasses->gameRules;
+    return GlobalContext::instance().fullContext().gameClasses().gameRules;
 }
 
 inline const MemAllocImpl& MemAllocImpl::instance() noexcept
 {
-    return GlobalContext::instance().gameClasses->memAlloc;
+    return GlobalContext::instance().fullContext().gameClasses().memAlloc;
 }
 
 inline const PanelImpl& PanelImpl::instance() noexcept
 {
-    return GlobalContext::instance().gameClasses->panel;
+    return GlobalContext::instance().fullContext().gameClasses().panel;
+}
+
+inline const PanelStyleImpl& PanelStyleImpl::instance() noexcept
+{
+    return GlobalContext::instance().fullContext().gameClasses().panelStyle;
 }
 
 inline const PanoramaImagePanelImpl& PanoramaImagePanelImpl::instance() noexcept
 {
-    return GlobalContext::instance().gameClasses->imagePanel;
+    return GlobalContext::instance().fullContext().gameClasses().imagePanel;
 }
 
 inline const PanoramaLabelImpl& PanoramaLabelImpl::instance() noexcept
 {
-    return GlobalContext::instance().gameClasses->panoramaLabel;
+    return GlobalContext::instance().fullContext().gameClasses().panoramaLabel;
 }
 
 inline const PanoramaUiEngineImpl& PanoramaUiEngineImpl::instance() noexcept
 {
-    return GlobalContext::instance().gameClasses->uiEngine;
+    return GlobalContext::instance().fullContext().gameClasses().uiEngine;
 }
 
 inline const PanoramaUiPanelImpl& PanoramaUiPanelImpl::instance() noexcept
 {
-    return GlobalContext::instance().gameClasses->panoramaUiPanelOffsets;
+    return GlobalContext::instance().fullContext().gameClasses().panoramaUiPanelOffsets;
 }
 
-inline const PlantedC4Impl& PlantedC4Impl::instance() noexcept
+inline const TopLevelWindowImpl& TopLevelWindowImpl::instance() noexcept
 {
-    return GlobalContext::instance().gameClasses->plantedC4;
+    return GlobalContext::instance().fullContext().gameClasses().topLevelWindow;
 }
